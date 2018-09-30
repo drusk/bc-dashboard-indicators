@@ -1,0 +1,74 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<indicatorTemplateXML>
+	<author>OSCAR BC</author>
+	<uid></uid>
+	<heading>
+		<category>General</category>
+		<subCategory>Patient Population</subCategory>
+		<name>Aggregated No Assigned Primary</name>
+		<definition># of active patients without an assigned primary
+		</definition>
+		<framework>DoBC CPQI PSP Panel</framework>
+		<frameworkVersion>08-02-2017</frameworkVersion>
+		<notes>
+		  i)  # of active patients without an assigned primary
+		  ii) # all active patients for all providers
+		</notes>
+	</heading>
+	<indicatorQuery>
+		<version>03-13-2018</version>
+		<params>
+			<!-- 
+				Use this parameter in the query as ${provider}
+				This parameter should be used for fetching patient's assigned to a MRP.
+				ie: WHERE demographic.provider_no = ${provider}
+			-->
+			<parameter id="provider" name="provider_no" value="loggedInProvider" />
+			<parameter id="pstatus" name="Patient Status" value="'AC'" />
+		</params>
+		<query>
+		  <!-- Indicator SQL Query here -->
+SELECT
+	SUM(fin.NO_ASSIGNED_PRIMARY) AS "% Active, No Assigned Primary",
+	SUM(fin.OTHER_PATIENTS) AS "% Active, Assigned Primary"
+FROM (
+	SELECT
+		IF( d.provider_no IS NULL OR d.provider_no = '' OR p.provider_no IS NULL ,1 ,0 ) AS NO_ASSIGNED_PRIMARY,
+		IF( d.provider_no IS NOT NULL AND d.provider_no != '' AND p.provider_no is NOT NULL,1 ,0 ) AS OTHER_PATIENTS
+	FROM demographic d
+	LEFT JOIN provider p
+	ON d.provider_no = p.provider_no
+	WHERE d.patient_status LIKE ${pstatus}
+) fin;
+		</query>
+	</indicatorQuery>
+	<drillDownQuery>
+		<version>03-13-2018</version>
+		<params>
+			<parameter id="provider" name="provider_no" value="loggedInProvider" />	
+			<parameter id="pstatus" name="Patient Status" value="'AC'" />
+		</params>
+		<displayColumns>
+		        <column id="noProvider" name="SUM(fin.NO_ASSIGNED_PRIMARY)" title="Active Without Assigned Primary" primary="false" />
+		  	<column id="allActive" name="SUM(fin.ALLACTIVE)" title="Active Patient Total" primary="false" />
+		</displayColumns>
+		<exportColumns>
+		        <column id="noProvider" name="SUM(fin.NO_ASSIGNED_PRIMARY)" title="Active Without Contact Info" primary="false" />
+		  	<column id="allActive" name="SUM(fin.ALLACTIVE)" title="Active Patient Total" primary="false" />
+		</exportColumns>
+		<query>
+			<!-- Drilldown SQL Query here -->
+SELECT
+fin.*
+FROM (
+	SELECT
+		IF( d.provider_no IS NULL OR d.provider_no = '' OR p.provider_no IS NULL ,1 ,0 ) AS NO_ASSIGNED_PRIMARY,
+		IF( true, 1, 0 ) AS ALLACTIVE
+	FROM demographic d
+	LEFT JOIN provider p
+	ON d.provider_no = p.provider_no
+	WHERE d.patient_status LIKE ${pstatus}
+) fin;
+		</query>
+	</drillDownQuery>
+</indicatorTemplateXML>

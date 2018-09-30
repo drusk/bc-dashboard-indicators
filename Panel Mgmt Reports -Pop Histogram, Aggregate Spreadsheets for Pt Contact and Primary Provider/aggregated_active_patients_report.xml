@@ -1,0 +1,77 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<indicatorTemplateXML>
+	<author>OSCAR BC</author>
+	<uid></uid>
+	<heading>
+		<category>General</category>
+		<subCategory>Patient Population</subCategory>
+		<name>Aggregated Active Patients Report</name>
+		<definition># of patients that have been seen in the last 3 years in comparison to # all active patients</definition>
+		<framework>DoBC CPQI PSP Panel</framework>
+		<frameworkVersion>08-02-2017</frameworkVersion>
+		<notes>
+		  i) # of active patients that have been seen in the last 3 year
+		  ii) # of active patients not seen in the last 3 years
+		</notes>
+	</heading>
+	<indicatorQuery>
+		<version>03-13-2018</version>
+		<params>
+			<!-- 
+				Use this parameter in the query as ${provider}
+				This parameter should be used for fetching patient's assigned to a MRP.
+				ie: WHERE demographic.provider_no = ${provider}
+			-->
+			<parameter id="provider" name="provider_no" value="loggedInProvider" />
+			<parameter id="pstatus" name="Patient Status" value="'AC'" />
+		</params>
+		<query>
+		  <!-- Indicator SQL Query here -->
+SELECT
+	SUM(fin.THREE) AS "% Active, Seen within 3 years",
+	SUM(fin.ALL_PATIENTS)-SUM(fin.THREE) AS "% Active, Not seen within 3 years"
+FROM (
+	SELECT
+		IF( DATE_SUB(CURDATE() , INTERVAL 3 YEAR) &lt;= DATE( MAX(cmn.observation_date) ) ,1 ,0 ) AS THREE, 
+		IF( TRUE, 1, 0) AS ALL_PATIENTS
+	FROM demographic d
+	LEFT JOIN casemgmt_note cmn
+	ON (  d.demographic_no = cmn.demographic_no AND cmn.signed = 1 AND cmn.provider_no != '-1'  )
+	WHERE d.provider_no LIKE ${provider}
+	AND d.patient_status LIKE ${pstatus}
+	GROUP BY d.demographic_no HAVING count(d.demographic_no) > -1
+) fin;
+		</query>
+	</indicatorQuery>
+	<drillDownQuery>
+		<version>03-13-2018</version>
+		<params>
+			<parameter id="provider" name="provider_no" value="loggedInProvider" />	
+			<parameter id="pstatus" name="Patient Status" value="'AC'" />
+		</params>
+		<displayColumns>
+		        <column id="seen3yrs" name="SUM(fin.THREE)" title="Active Seen Within Last 3 Years" primary="false" />
+		  	<column id="allActive" name="SUM(fin.ALL_PATIENTS)" title="Active Patient Total" primary="false" />
+		</displayColumns>
+		<exportColumns>
+		        <column id="seen3yrs" name="SUM(fin.THREE)" title="Active Seen Within Last 3 Years" primary="false" />
+		  	<column id="allActive" name="SUM(fin.ALL_PATIENTS)" title="Active Patient Total" primary="false" />
+		</exportColumns>
+		<query>
+			<!-- Drilldown SQL Query here -->
+SELECT
+fin.*
+FROM (
+	SELECT
+		IF( DATE_SUB(CURDATE() , INTERVAL 3 YEAR) &lt;= DATE( MAX(cmn.observation_date) ) ,1 ,0 ) AS THREE, 
+		IF( TRUE, 1, 0) AS ALL_PATIENTS
+	FROM demographic d
+	LEFT JOIN casemgmt_note cmn
+	ON (  d.demographic_no = cmn.demographic_no AND cmn.signed = 1 AND cmn.provider_no != '-1'  )
+	WHERE d.provider_no LIKE ${provider}
+	AND d.patient_status LIKE ${pstatus}
+	GROUP BY d.demographic_no HAVING count(d.demographic_no) > -1
+) fin;
+		</query>
+	</drillDownQuery>
+</indicatorTemplateXML>

@@ -1,0 +1,287 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<indicatorTemplateXML>
+	<author>OSCAR BC</author>
+	<uid></uid>
+	<heading>
+		<category>CDM</category>
+		<subCategory>Hypertension</subCategory>
+		<name>Consider Hypertension</name>
+		<definition>
+			Patients with hypertension dx in 2+ bills or 2+ visits within last 3 years or most recent BP &gt; 140/90 or 2+ BP > 140/90 in last 2 years
+		</definition>
+		<framework>DoBC CPQI PSP Panel</framework>
+		<frameworkVersion>08-02-2017</frameworkVersion>
+		<notes>
+		  Created for Doctors of BC
+		  i) HTN dx in 2+ bills: "Patient Status: Active
+AND does not have a Current Problem List/Profile item code of 38341003 OR starting with 401
+AND with ≥2 Bills with the ICD9 diagnosis code starting with 401 in the last 3 years"
+		  ii) HTN dx in 2+ visits: "Patient Status: Active
+AND does not have a Current Problem List/Profile item code of 38341003 OR starting with 401
+AND with ≥2 Visit Encounters with Snomed diagnosis code 38341003 or the ICD9 diagnosis code starting with 401 in the last 3 years"
+		  iii) BP &gt; 140/90: "Patient Status: Active
+AND does not have a Current Problem List/Profile item code of 38341003 OR starting with 401
+AND WITH  the a most recent Blood Pressure observation > 140/90 OR 2+ Blood Pressures documented >140/90 in the last 2 years"
+		</notes>
+	</heading>
+	<indicatorQuery>
+		<version>03-13-2018</version>
+		<params>
+			<parameter id="provider" name="Provider Number" value="loggedInProvider" />
+			<parameter id="active" name="Active Patients" value="'AC'" />
+			<parameter id="dxcodesICD" name="Dx Codes (ICD)" value="'401%'" />
+                        <parameter id="dxcodesSysICD" name="DX CodeSystem (ICD)" value="'icd9'" />
+                        <parameter id="dxcodesSnoMed" name="Dx Codes (SnoMed)" value="'38341003'" />
+                        <parameter id="dxcodesSysSnoMed" name="Dx CodeSystem (SnoMed)" value="'snomed%'" />
+			<parameter id="billingCode" name="ICD9 Billing Code" value="401" />
+			<parameter id="numOfBills" name="Number of ICD9 401 Bills" value="2" />
+			<parameter id="numOfVisits" name="Number of Visit Encounters coded 401/ICD9" value="2" />
+			<parameter id="numOfBPs" name="Number of BP measurements" value="2" />
+		</params>
+		<range>
+			<lowerLimit id="billingdate" label="From Date" name="Date" value="DATE_SUB( NOW(), INTERVAL 3 YEAR )" />
+			<upperLimit id="billingdate" label="Date Today" name="Date" value="NOW()" />
+			<lowerLimit id="visitdate" label="From Date" name="Date" value="DATE_SUB( NOW(), INTERVAL 3 YEAR )" />
+                        <upperLimit id="visitdate" label="Date Today" name="Date" value="NOW()" />
+			<lowerLimit id="labdate" label="From Date" name="Date" value="DATE_SUB( NOW(), INTERVAL 2 YEAR )" />
+			<upperLimit id="labdate" label="Date Today" name="Date" value="NOW()" />
+		</range>
+		<query>
+SELECT
+  IF ( COUNT(fin.patient) &gt; 0, SUM( CASE WHEN (fin.dx IS NULL AND fin.billcount &gt;= ${numOfBills}) THEN 1 ELSE 0 END ) , 0) AS "HTN dx in ${numOfBills}+ bills",
+  IF ( COUNT(fin.patient) &gt; 0, SUM( CASE WHEN (fin.dx IS NULL AND fin.visitcount &gt;= ${numOfVisits}) THEN 1 ELSE 0 END ) , 0) AS "HTN dx in ${numOfVisits}+ visits",
+
+  IF ( COUNT(fin.patient) &gt; 0, SUM( CASE WHEN (fin.dx IS NULL AND ((fin.lastBP REGEXP '1[4-9][1-9]/[0-9]{1,3}' OR fin.lastBP REGEXP '2[0-9][0-9]/[0-9]{1,3}' OR
+      fin.lastBP REGEXP '[0-9]{1,3}/9[1-9]{1}' OR fin.lastBP REGEXP '[0-9]{1,3}/1[0-9]{2}') OR (fin.countBP &gt;= ${numOfBPs})) ) THEN 1 ELSE 0 END ) , 0) AS "BP &gt; 140/90"
+FROM ( 
+  SELECT 
+    d.demographic_no AS patient, 
+    BILLING.billcount AS billcount,
+    VISIT.visitcount AS visitcount,
+    LAST.bp AS lastBP,
+    BP2.countBP AS countBP,
+    dxr.dxresearch_code AS dx,
+    dxr.coding_system AS dxs
+  FROM demographic d 
+  LEFT JOIN (
+    SELECT demographic_no, dxresearch_code, coding_system, count(dxresearch_code)
+    FROM dxresearch
+    WHERE status='A' AND
+    (
+      (dxresearch_code LIKE ${dxcodesICD} AND coding_system = ${dxcodesSysICD}) OR
+      (dxresearch_code = ${dxcodesSnoMed} AND coding_system LIKE ${dxcodesSysSnoMed})
+    )
+    GROUP BY demographic_no
+    ORDER BY demographic_no
+  ) dxr
+  ON d.demographic_no = dxr.demographic_no
+  -- Billed 401 in last 3 years
+  LEFT JOIN (
+    SELECT b.demographic_no as demographic_no, b.dx_code1 as dxcode1, b.dx_code2 as dxcode2, b.dx_code3 as dxcode3, count(b.demographic_no) as billcount
+    FROM billingmaster b
+    WHERE b.dx_code1 = ${billingCode} OR b.dx_code2 = ${billingCode} OR b.dx_code3 = ${billingCode}
+    AND DATE(b.createdate) > ${lowerLimit.billingdate}
+    AND b.demographic_no > 0
+    GROUP BY b.demographic_no HAVING COUNT(b.demographic_no) > -1
+  ) BILLING
+  ON (d.demographic_no = BILLING.demographic_no)
+  -- Coded 401 during visit encounter in last 3 years
+  LEFT JOIN(
+    SELECT ASSIGNED.demographic_no AS demographic_no, observation_date AS visitdate, uuid, count(ASSIGNED.demographic_no) AS visitcount
+    FROM casemgmt_note note
+    INNER JOIN (
+      SELECT note_id, CODED.demo_no AS demographic_no FROM casemgmt_issue_notes
+      INNER JOIN (
+        SELECT ci.id AS id, ci.update_date, ci.demographic_no demo_no FROM issue i
+        INNER JOIN casemgmt_issue ci
+        ON i.issue_id = ci.issue_id
+        WHERE
+        (i.type LIKE ${dxcodesSysICD} and i.code LIKE ${dxcodesICD}) OR
+        (i.type LIKE ${dxcodesSysSnoMed} and i.code = ${dxcodesSnoMed})
+      ) CODED
+      ON (casemgmt_issue_notes.id = CODED.id)
+      ORDER BY CODED.demo_no
+    ) ASSIGNED
+    ON note.note_id = ASSIGNED.note_id AND
+    -- GET LAST REVISION OF NOTE
+    note.note_id= (SELECT MAX(cmn.note_id) FROM casemgmt_note cmn WHERE cmn.uuid = note.uuid) AND
+    DATE(note.observation_date) > ${lowerLimit.visitdate}
+    GROUP BY demographic_no
+    ORDER BY demographic_no
+  ) VISIT
+  ON (d.demographic_no = VISIT.demographic_no)
+  -- Last BP measurement
+  LEFT JOIN (
+    SELECT m.demographicNo AS demographic_no, m.dataField AS bp, m.dateObserved AS dateObserved
+    FROM measurements m
+    INNER JOIN (
+      SELECT demographicNo, MAX(dateObserved) AS dateObserved
+      FROM measurements
+      WHERE type = 'BP'
+      GROUP BY demographicNo
+    ) mlast
+    ON m.demographicNo = mlast.demographicNo
+    WHERE m.type = 'BP'
+    AND m.dateObserved = mlast.dateObserved
+    AND m.demographicNo &gt; 0
+    GROUP BY m.demographicNo
+  ) LAST
+  ON (d.demographic_no = LAST.demographic_no) 
+  -- Two of more BP > 140/90 in last two years
+  LEFT JOIN ( 
+    SELECT m.demographicNo as demographic_no, m.dataField as bp, count(m.dataField) as countBP
+    FROM measurements m
+    WHERE m.type = 'BP'
+    AND DATE(m.dateObserved) > ${lowerLimit.labdate}
+    AND (m.dataField REGEXP '1[4-9][1-9]/[0-9]{1,3}' OR m.dataField REGEXP '2[0-9][0-9]/[0-9]{1,3}' OR
+      m.dataField REGEXP '[0-9]{1,3}/9[1-9]{1}' OR m.datafield REGEXP '[0-9]{1,3}/1[0-9]{2}')
+    AND m.demographicNo > 0
+    GROUP BY m.demographicNo HAVING COUNT(m.demographicNo) > -1
+  ) BP2
+  ON (d.demographic_no = BP2.demographic_no) 
+  WHERE d.patient_status LIKE ${active}
+  AND d.demographic_no > 0
+  AND d.provider_no LIKE ${provider} 
+) fin
+		</query>
+	</indicatorQuery>
+	<drillDownQuery>
+		<version>03-13-2018</version>
+		<params>
+			<parameter id="provider" name="Provider Number" value="loggedInProvider" />
+			<parameter id="active" name="Active Patients" value="'AC'" />
+			<parameter id="dxcodesICD" name="Dx Codes (ICD)" value="'401%'" />
+                        <parameter id="dxcodesSysICD" name="DX CodeSystem (ICD)" value="'icd9'" />
+                        <parameter id="dxcodesSnoMed" name="Dx Codes (SnoMed)" value="'38341003'" />
+                        <parameter id="dxcodesSysSnoMed" name="Dx CodeSystem (SnoMed)" value="'snomed%'" />
+			<parameter id="numOfBills" name="Number of ICD9 401 Bills" value="2" />
+			<parameter id="numOfVisits" name="Number of ICD9 401 Visit Encounters" value="2" />
+			<parameter id="numOfBPs" name="Number of BP measurements" value="2" />
+			<parameter id="billingCode" name="ICD9 Billing Code" value="401" />
+		</params>
+		
+		<range>
+			<lowerLimit id="billingdate" label="From Date" name="Date" value="DATE_SUB( NOW(), INTERVAL 3 YEAR )" />
+			<upperLimit id="billingdate" label="Date Today" name="Date" value="NOW()" />
+			<lowerLimit id="visitdate" label="From Date" name="Date" value="DATE_SUB( NOW(), INTERVAL 3 YEAR )" />
+                        <upperLimit id="visitdate" label="Date Today" name="Date" value="NOW()" />
+			<lowerLimit id="labdate" label="From Date" name="Date" value="DATE_SUB( NOW(), INTERVAL 2 YEAR )" />
+			<upperLimit id="labdate" label="Date Today" name="Date" value="NOW()" />
+		</range>
+		
+		<displayColumns>
+			<column id="demographic" name="d.demographic_no" title="Patient Id" primary="true" />
+			<column id="name" name="CONCAT( d.last_name, ', ', d.first_name )" title="Patient Name" primary="false" />
+			<column id="dob" name="DATE_FORMAT( CONCAT(d.year_of_birth,'-',d.month_of_birth,'-',d.date_of_birth), '%m-%d-%Y' )" title="Date of Birth" primary="false" />
+			<column id="age" name="TIMESTAMPDIFF(YEAR, DATE( CONCAT(d.year_of_birth,'-',d.month_of_birth,'-',d.date_of_birth) ), CURDATE() )" title="Age" primary="false" />
+			<column id="billings" name="IFNULL( BILLING.billcount, '0')" title="Billings" primary="false" />
+			<column id="visits" name="IFNULL( VISIT.visitcount, '0')" title="Visits" primary="false" />
+			<column id="lastBP" name="IFNULL( LAST.bp, 'NA')" title="Last BP" primary="false" />
+			<column id="testDateBP" name="IFNULL( DATE_FORMAT( LAST.dateObserved, '%m-%d-%Y' ), 'NA')" title="Date (yyyy-mm-dd)" primary="false" />
+			<column id="numBPs" name="IFNULL( BP2.countBP, '0')" title="BPs>140/90 Last 2yrs" primary="false" />
+		</displayColumns>
+		
+		<exportColumns>
+			<column id="demographic" name="d.demographic_no" title="Patient Id" primary="true" />
+                        <column id="firstName" name="d.first_name" title="First Name" primary="false" />
+                        <column id="lastName" name="d.last_name" title="Last Name" primary="false" />
+			<column id="dob" name="DATE_FORMAT( CONCAT(d.year_of_birth,'-',d.month_of_birth,'-',d.date_of_birth), '%m-%d-%Y' )" title="Date of Birth" primary="false" />
+			<column id="age" name="TIMESTAMPDIFF(YEAR, DATE( CONCAT(d.year_of_birth,'-',d.month_of_birth,'-',d.date_of_birth) ), CURDATE() )" title="Age" primary="false" />
+			<column id="billings" name="IFNULL( BILLING.billcount, '0')" title="Billings" primary="false" />
+			<column id="visits" name="IFNULL( VISIT.visitcount, '0')" title="Visits" primary="false" />
+			<column id="lastBP" name="IFNULL( LAST.bp, '')" title="Last BP" primary="false" />
+			<column id="testDateBP" name="IFNULL( DATE_FORMAT( LAST.dateObserved, '%m-%d-%Y' ), '')" title="Date (yyyy-mm-dd)" primary="false" />
+			<column id="numBPs" name="IFNULL( BP2.countBP, '0')" title="BPs>140/90 Last 2yrs" primary="false" />
+		</exportColumns>
+		<query>	
+p  SELECT *	
+  FROM demographic d 
+  LEFT JOIN (
+    SELECT demographic_no, dxresearch_code, coding_system, count(dxresearch_code)
+    FROM dxresearch
+    WHERE status='A' AND
+    (
+      (dxresearch_code LIKE ${dxcodesICD} AND coding_system = ${dxcodesSysICD}) OR
+      (dxresearch_code = ${dxcodesSnoMed} AND coding_system LIKE ${dxcodesSysSnoMed})
+    )
+    GROUP BY demographic_no
+    ORDER BY demographic_no
+  ) dxr
+  ON d.demographic_no = dxr.demographic_no
+  -- Billed 401 in last 3 years
+  LEFT JOIN (
+    SELECT b.demographic_no as demographic_no, b.dx_code1 as dxcode1, b.dx_code2 as dxcode2, b.dx_code3 as dxcode3, count(b.demographic_no) as billcount
+    FROM billingmaster b
+    WHERE b.dx_code1 = ${billingCode} OR b.dx_code2 = ${billingCode} OR b.dx_code3 = ${billingCode}
+    AND DATE(b.createdate) > ${lowerLimit.billingdate}
+    AND b.demographic_no > 0
+    GROUP BY b.demographic_no HAVING COUNT(b.demographic_no) > -1
+  ) BILLING
+  ON (d.demographic_no = BILLING.demographic_no)  
+  -- Coded 401 during visit encounter in last 3 years
+  LEFT JOIN(
+    SELECT ASSIGNED.demographic_no AS demographic_no, observation_date AS visitdate, uuid, count(ASSIGNED.demographic_no) AS visitcount
+    FROM casemgmt_note note
+    INNER JOIN (
+      SELECT note_id, CODED.demo_no AS demographic_no FROM casemgmt_issue_notes
+      INNER JOIN (
+        SELECT ci.id AS id, ci.update_date, ci.demographic_no demo_no FROM issue i
+        INNER JOIN casemgmt_issue ci
+        ON i.issue_id = ci.issue_id
+        WHERE
+        (i.type LIKE ${dxcodesSysICD} and i.code LIKE ${dxcodesICD}) OR
+        (i.type LIKE ${dxcodesSysSnoMed} and i.code = ${dxcodesSnoMed})
+      ) CODED
+      ON (casemgmt_issue_notes.id = CODED.id)
+      ORDER BY CODED.demo_no
+    ) ASSIGNED
+    ON note.note_id = ASSIGNED.note_id AND
+    -- GET LAST REVISION OF NOTE
+    note.note_id= (SELECT MAX(cmn.note_id) FROM casemgmt_note cmn WHERE cmn.uuid = note.uuid) AND
+    DATE(note.observation_date) > ${lowerLimit.visitdate}
+    GROUP BY demographic_no
+    ORDER BY demographic_no
+  ) VISIT
+  ON (d.demographic_no = VISIT.demographic_no)
+  -- Last BP measurement
+  LEFT JOIN (
+    SELECT m.demographicNo AS demographic_no, m.dataField AS bp, m.dateObserved AS dateObserved
+    FROM measurements m
+    INNER JOIN (
+      SELECT demographicNo, MAX(dateObserved) AS dateObserved
+      FROM measurements
+      WHERE type = 'BP'
+      GROUP BY demographicNo
+    ) mlast
+    ON m.demographicNo = mlast.demographicNo
+    WHERE m.type = 'BP'
+    AND m.dateObserved = mlast.dateObserved
+    AND m.demographicNo &gt; 0
+    GROUP BY m.demographicNo
+  ) LAST
+  ON (d.demographic_no = LAST.demographic_no) 
+  -- Two of more BP > 140/90 in last two years
+  LEFT JOIN ( 
+    SELECT m.demographicNo as demographic_no, m.dataField as bp, count(m.dataField) as countBP
+    FROM measurements m
+    WHERE m.type = 'BP'
+    AND DATE(m.dateObserved) > ${lowerLimit.labdate}
+    AND (m.dataField REGEXP '1[4-9][1-9]/[0-9]{1,3}' OR m.dataField REGEXP '2[0-9][0-9]/[0-9]{1,3}' OR
+      m.dataField REGEXP '[0-9]{1,3}/9[1-9]{1}' OR m.datafield REGEXP '[0-9]{1,3}/1[0-9]{2}')
+    AND m.demographicNo > 0
+    GROUP BY m.demographicNo HAVING COUNT(m.demographicNo) > -1
+  ) BP2
+  ON (d.demographic_no = BP2.demographic_no) 
+  WHERE d.patient_status LIKE ${active}
+  AND d.demographic_no > 0
+  AND d.provider_no LIKE ${provider}
+  AND ( dxr.dxresearch_code IS NULL AND (
+  (BILLING.billcount IS NOT NULL AND BILLING.billcount &gt;= ${numOfBills}) OR
+  (VISIT.visitcount IS NOT NULL AND VISIT.visitcount &gt;= ${numOfVisits}) OR
+  (LAST.bp REGEXP '1[4-9][1-9]/[0-9]{1,3}' OR LAST.bp REGEXP '2[0-9][0-9]/[0-9]{1,3}' OR
+  LAST.bp REGEXP '[0-9]{1,3}/9[1-9]{1}' OR LAST.bp REGEXP '[0-9]{1,3}/1[0-9]{2}') OR
+  (BP2.countBP IS NOT NULL AND BP2.countBP &gt; ${numOfBPs})))
+  ORDER BY d.demographic_no
+		</query>
+	</drillDownQuery>
+</indicatorTemplateXML>

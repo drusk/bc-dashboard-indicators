@@ -1,0 +1,86 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<indicatorTemplateXML>
+	<author>OSCAR BC</author>
+	<uid></uid>
+	<heading>
+		<category>Utility</category>
+		<subCategory>Patient Population</subCategory>
+		<name>Active Patients Excluded from One or More Indicators</name>
+		<definition>Active patients that are currently excluded from one or more indicators</definition>
+		<framework>DoBC CPQI PSP Panel</framework>
+		<frameworkVersion>21-08-2018</frameworkVersion>
+		<notes>
+		  Patients that are excluded together with the indicator from which they have been excluded.
+		</notes>
+	</heading>
+	<indicatorQuery>
+		<version>08-02-2017</version>
+		<params>
+			<!-- 
+				Use this parameter in the query as ${provider}
+				This parameter should be used for fetching patient's assigned to a MRP.
+				ie: WHERE demographic.provider_no = ${provider}
+			-->
+			<parameter id="provider" name="provider_no" value="loggedInProvider" />
+			<parameter id="pstatus" name="Patient Status" value="'AC'" />
+		</params>
+		<query>
+		  <!-- Indicator SQL Query here -->
+SELECT
+	SUM(fin.CURRENT) AS "Current Exclusions",
+	SUM(fin.NOT_CURRENT) AS "Expired Exclusions"
+FROM (
+	SELECT
+		IF( DATE_SUB(CURDATE() , INTERVAL 1 YEAR) &lt;= DATE( dext.date_time ) ,1 ,0 ) AS CURRENT, 
+		IF( DATE_SUB(CURDATE() , INTERVAL 1 YEAR) &lt;= DATE( dext.date_time ) ,0 ,1 ) AS NOT_CURRENT
+	FROM demographic d
+	LEFT JOIN demographicExt dext
+	ON (  d.demographic_no = dext.demographic_no )
+	WHERE d.provider_no LIKE ${provider}
+	AND dext.provider_no LIKE ${provider}
+	AND d.patient_status LIKE ${pstatus}
+	AND dext.key_val = "excludeIndicator"
+) fin;
+		</query>
+	</indicatorQuery>
+	<drillDownQuery>
+		<version>03-13-2018</version>
+		<params>
+			<parameter id="provider" name="provider_no" value="loggedInProvider" />	
+			<parameter id="pstatus" name="Patient Status" value="'AC'" />
+		</params>
+		<displayColumns>
+			<column id="demographic" name="d.demographic_no" title="Patient Id" primary="true" />
+			<column id="name" name="CONCAT( d.last_name, ', ', d.first_name )" title="Patient Name" primary="false" />
+			<column id="dob" name="DATE_FORMAT( CONCAT(d.year_of_birth,'-',d.month_of_birth,'-',d.date_of_birth), '%m-%d-%Y' )" title="DOB (mm-dd-yy)" primary="false" />
+			<column id="age" name="TIMESTAMPDIFF(YEAR, DATE( CONCAT(d.year_of_birth,'-',d.month_of_birth,'-',d.date_of_birth) ), CURDATE() )" title="Age" primary="false" />	
+			<column id="indicatorId" name="value" title="Indicator (Name|Category|SubCategory)" primary="false" />
+			<column id="exclusionStatus" name="IF(DATE_SUB(CURDATE(),INTERVAL 1 YEAR) &lt;= DATE(dext.date_time) ,'Active' ,'Expired')" title="Exclusion" primary="false" />
+			<column id="dateExcluded" name="dext.date_time" title="Date Excluded" primary="false" />
+		</displayColumns>
+		<exportColumns>
+                        <column id="demographic" name="d.demographic_no" title="Patient Id" primary="true" />
+			<column id="name" name="CONCAT( d.last_name, ', ', d.first_name )" title="Patient Name" primary="false" />
+			<column id="dob" name="DATE_FORMAT( CONCAT(d.year_of_birth,'-',d.month_of_birth,'-',d.date_of_birth), '%m-%d-%Y' )" title="DOB (mm-dd-yy)" primary="false" />
+			<column id="age" name="TIMESTAMPDIFF(YEAR, DATE( CONCAT(d.year_of_birth,'-',d.month_of_birth,'-',d.date_of_birth) ), CURDATE() )" title="Age" primary="false" />	
+			<column id="indicatorId" name="value" title="Indicator (Name|Category|SubCategory)" primary="false" />
+			<column id="exclusionStatus" name="IF(DATE_SUB(CURDATE(),INTERVAL 1 YEAR) &lt;= DATE(dext.date_time) ,'Active' ,'Expired')" title="Exclusion" primary="false" />
+			<column id="dateExcluded" name="dext.date_time" title="Date Excluded" primary="false" />
+		</exportColumns>
+		<query>
+			<!-- Drilldown SQL Query here -->
+SELECT
+    d.*,
+    d.patient_status AS pt_status,
+    dext.date_time as exclusion_date
+FROM demographic d
+LEFT JOIN demographicExt dext
+ON (  d.demographic_no = dext.demographic_no )
+WHERE d.provider_no LIKE ${provider}
+AND dext.provider_no like ${provider}
+AND d.patient_status LIKE ${pstatus}
+AND dext.key_val = "excludeIndicator"
+ORDER BY dext.date_time DESC, d.demographic_no ASC
+		</query>
+	</drillDownQuery>
+</indicatorTemplateXML>

@@ -1,0 +1,109 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<indicatorTemplateXML>
+	<author>OSCAR BC</author>
+	<uid></uid>
+	<heading>
+		<category>CDM</category>
+		<subCategory>Advanced Care Planning</subCategory>
+		<name>Advanced Care Planning Prevalence</name>
+		<definition>% of active patients in the practice coded with Advanced Care Planning.</definition>
+		<framework>DoBC CPQI PSP Panel</framework>
+		<frameworkVersion>08-02-2017</frameworkVersion>
+		<notes>
+i) Advanced care patients: "Patient Status: Active
+AND has a Current Problem List/Profile item code of 105499002 or starting with V66"
+ii) Other patients: "Patient Status: Active
+AND does not have a Current Problem List/Profile item code of 105499002 or starting with V66"
+		</notes>
+	</heading>
+	<indicatorQuery>
+		<version>03-13-2018</version>
+		<params>
+			<!-- 
+				Required parameter provider. Value options are: 
+					[ an individual providerNo, or provider range ] ie: value="370, 1001" 
+					"all" ie: value="all" including null.
+					"loggedInProvider" ie:
+				Default is "loggedInProvider"
+				Use this parameter in the query as ${provider}
+				This parameter should be used for fetching patient's assigned to a MRP.
+				ie: WHERE demographic.provider_no = ${provider}
+			-->
+			<parameter id="provider" name="provider_no" value="loggedInProvider" />
+			<parameter id="pstatus" name="Patient Status" value="'AC'" />
+			<parameter id="dxcodesICD" name="Dx Codes (ICD)" value="V66" />
+			<parameter id="dxcodesSysICD" name="DX CodeSystem (ICD)" value="'icd9'" />
+			<parameter id="dxcodesSnoMed" name="Dx Codes (SnoMed)" value="105499002" />
+			<parameter id="dxcodesSysSnoMed" name="Dx CodeSystem (SnoMed)" value="'snomed%'" />
+		</params>
+		<query>
+			<!-- Indicator SQL Query here -->
+SELECT
+ -- PERCENT OF TOTAL PATIENTS NOTED AS ACTIVE WITH CURRENT ADVANCED CARE PLANNING
+ IF( COUNT(fin.patient) > 0, SUM( IF( dxresearch_code is not NULL , 1, 0) ) , 0 ) AS "% Active, Current Advanced Care Planning",
+ -- PERCENT OF TOTAL PATIENTS NOTED AS ACTIVE WITHOUT CURRENT ADVANCED CARE PLANNING
+ IF( COUNT(fin.patient) > 0, SUM( IF( dxresearch_code is NULL , 1, 0) ) , 0 ) AS "% Active, No Current Advanced Care Planning"
+FROM (
+ SELECT d.demographic_no AS patient, d.patient_status AS pt_status, dxresearch_code
+ FROM demographic d
+ LEFT JOIN (
+  SELECT demographic_no, dxresearch_code, count(dxresearch_code)
+  FROM dxresearch
+  WHERE status='A' AND
+  (
+   (LEFT(dxresearch_code, 3) IN ('V66') AND coding_system = ${dxcodesSysICD}) OR
+   (dxresearch_code IN ('105499002') AND coding_system LIKE ${dxcodesSysSnoMed})
+   )
+  GROUP BY demographic_no
+  ORDER BY demographic_no
+ ) problems
+ ON d.demographic_no = problems.demographic_no
+ WHERE d.provider_no LIKE ${provider} AND d.patient_status = ${pstatus}
+) fin
+		</query>
+	</indicatorQuery>
+	<drillDownQuery>
+		<version>03-13-2018</version>
+		<params>
+			<parameter id="provider" name="provider_no" value="loggedInProvider" />	
+			<parameter id="pstatus" name="Patient Status" value="'AC'" />
+			<parameter id="dxcodesICD" name="Dx Codes (ICD)" value="V66" />
+			<parameter id="dxcodesSysICD" name="DX CodeSystem (ICD)" value="'icd9'" />
+			<parameter id="dxcodesSnoMed" name="Dx Codes (SnoMed)" value="105499002" />
+			<parameter id="dxcodesSysSnoMed" name="Dx CodeSystem (SnoMed)" value="'snomed%'" />
+		</params>
+		<displayColumns>
+			<column id="demographic" name="d.demographic_no" title="Patient Id" primary="true" />
+			<column id="name" name="CONCAT( d.last_name, ', ', d.first_name )" title="Patient Name" primary="false" />
+			<column id="dob" name="DATE_FORMAT( CONCAT(d.year_of_birth,'-',d.month_of_birth,'-',d.date_of_birth), '%m-%d-%Y' )" title="Date of Birth (mm-dd-yy)" primary="false" />
+			<column id="age" name="TIMESTAMPDIFF(YEAR, DATE( CONCAT(d.year_of_birth,'-',d.month_of_birth,'-',d.date_of_birth) ), CURDATE() )" title="Age" primary="false" />
+			<column id="dxcode" title="Dx System/Code" name="CONCAT(MIN(dxr.coding_system),'/',MIN(dxr.dxresearch_code),IF( MIN(dxr.dxresearch_code) != MAX(dxr.dxresearch_code),CONCAT( ' &amp; ', MAX(dxr.coding_system), '/', MAX(dxr.dxresearch_code) ),'') )" primary="false" />
+		</displayColumns>
+		<exportColumns>
+			<column id="demographic" name="d.demographic_no" title="Patient Id" primary="true" />
+			<column id="firstName" name="d.first_name" title="First Name" primary="false" />
+			<column id="lastName" name="d.last_name" title="Last Name" primary="false" />
+			<column id="dob" name="DATE_FORMAT( CONCAT(d.year_of_birth,'-',d.month_of_birth,'-',d.date_of_birth), '%m-%d-%Y' )" title="Date of Birth (mm-dd-yy)" primary="false" />
+			<column id="age" name="TIMESTAMPDIFF(YEAR, DATE( CONCAT(d.year_of_birth,'-',d.month_of_birth,'-',d.date_of_birth) ), CURDATE() )" title="Age" primary="false" />
+			<column id="dxcode" title="Dx System/Code" name="CONCAT(MIN(dxr.coding_system),'/',MIN(dxr.dxresearch_code),IF( MIN(dxr.dxresearch_code) != MAX(dxr.dxresearch_code),CONCAT( ' &amp; ', MAX(dxr.coding_system), '/', MAX(dxr.dxresearch_code) ),'') )" primary="false" />
+		</exportColumns>
+		<query>
+			<!-- Drilldown SQL Query here -->
+SELECT
+*			
+FROM demographic d
+LEFT JOIN dxresearch dxr
+ON d.demographic_no = dxr.demographic_no
+WHERE d.patient_status=${pstatus}
+AND
+(
+ (LEFT(dxr.dxresearch_code, 3) IN ('V66') AND dxr.coding_system = ${dxcodesSysICD}) OR
+ (dxr.dxresearch_code IN ('105499002') AND dxr.coding_system LIKE ${dxcodesSysSnoMed})
+ )
+AND dxr.status = 'A'
+AND d.provider_no LIKE ${provider}
+GROUP BY d.demographic_no
+ORDER BY COUNT(d.demographic_no) DESC, d.demographic_no
+		</query>
+	</drillDownQuery>
+</indicatorTemplateXML>

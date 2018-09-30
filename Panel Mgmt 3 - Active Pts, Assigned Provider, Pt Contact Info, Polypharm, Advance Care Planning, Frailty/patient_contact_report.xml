@@ -1,0 +1,89 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<indicatorTemplateXML>
+	<author>OSCAR BC</author>
+	<uid></uid>
+	<heading>
+		<category>General</category>
+		<subCategory>Patient Population</subCategory>
+		<name>Patient Contact</name>
+		<definition># of active patients with incomplete contact information in comparison to # all active patients
+		</definition>
+		<framework>DoBC CPQI PSP Panel</framework>
+		<frameworkVersion>08-02-2017</frameworkVersion>
+		<notes>
+		  i)  # of active patients with incomplete contact information
+		  ii) # of active patients with contact information
+		</notes>
+	</heading>
+	<indicatorQuery>
+		<version>03-13-2018</version>
+		<params>
+			<!-- 
+				Use this parameter in the query as ${provider}
+				This parameter should be used for fetching patient's assigned to a MRP.
+				ie: WHERE demographic.provider_no = ${provider}
+			-->
+			<parameter id="provider" name="provider_no" value="loggedInProvider" />
+			<parameter id="pstatus" name="Patient Status" value="'AC'" />
+		</params>
+		<query>
+		  <!-- Indicator SQL Query here -->
+SELECT
+	SUM(fin.INCOMPLETE_CONTACT_INFO) AS "Active, Incomplete Contact Information",
+	SUM(fin.HAS_CONTACT_INFO) AS "Active, With Contact Information"
+FROM (
+	SELECT
+		IF( (LENGTH(phone) &lt; LENGTH("###-###-####") AND LENGTH(phone2) &lt; LENGTH("###-###-####") AND LENGTH(e.value) &lt; LENGTH("###-###-####")) OR (address is NULL OR address="") OR (city is NULL OR city="") ,1 ,0 ) AS INCOMPLETE_CONTACT_INFO,
+		IF( (LENGTH(phone) &lt; LENGTH("###-###-####") AND LENGTH(phone2) &lt; LENGTH("###-###-####") AND LENGTH(e.value) &lt; LENGTH("###-###-####")) OR (address is NULL OR address="") OR (city is NULL OR city="") ,0 ,1 ) AS HAS_CONTACT_INFO
+	FROM demographic d
+	LEFT JOIN demographicExt e ON d.demographic_no=e.demographic_no AND
+	  e.key_val='demo_cell' AND e.date_time=(SELECT MAX(de.date_time) FROM demographicExt de WHERE e.demographic_no=de.demographic_no)
+	WHERE d.provider_no LIKE ${provider}
+	AND d.patient_status LIKE ${pstatus}
+) fin;
+		</query>
+	</indicatorQuery>
+	<drillDownQuery>
+		<version>03-13-2018</version>
+		<params>
+			<parameter id="provider" name="provider_no" value="loggedInProvider" />	
+			<parameter id="pstatus" name="Patient Status" value="'AC'" />
+		</params>
+		<displayColumns>
+			<column id="demographic" name="d.demographic_no" title="Patient Id" primary="true" />
+			<column id="name" name="CONCAT( d.last_name, ', ', d.first_name )" title="Patient Name" primary="false" />
+			<column id="dob" name="DATE_FORMAT( CONCAT(d.year_of_birth,'-',d.month_of_birth,'-',d.date_of_birth), '%m-%d-%Y' )" title="Date of Birth (mm-dd-yy)" primary="false" />
+			<column id="age" name="TIMESTAMPDIFF(YEAR, DATE( CONCAT(d.year_of_birth,'-',d.month_of_birth,'-',d.date_of_birth) ), CURDATE() )" title="Age" primary="false" />
+			<column id="phone" name="IF(d.phone IS NULL OR d.phone='', 'N/A', d.phone )" title="Phone(H)" primary="false" />
+			<column id="phone2" name="IF(d.phone2 IS NULL OR d.phone2='', 'N/A', d.phone2)" title="Phone(W)" primary="false" />
+			<column id="phone3" name="IF(e.value IS NULL OR e.value='', 'N/A', e.value)" title="Cell Phone" primary="false" />
+			<column id="address" name="IF(d.address IS NULL OR d.address='', 'N/A', d.address )" title="Address" primary="false" />
+			<column id="city" name="IF(d.city IS NULL OR d.city='', 'N/A', d.city )" title="City" primary="false" />
+
+		</displayColumns>
+		<exportColumns>
+		        <column id="demographic" name="d.demographic_no" title="Patient Id" primary="true" />
+		  	<column id="firstName" name="d.first_name" title="First Name" primary="false" />
+                        <column id="lastName" name="d.last_name" title="Last Name" primary="false" />
+			<column id="dob" name="DATE_FORMAT( CONCAT(d.year_of_birth,'-',d.month_of_birth,'-',d.date_of_birth), '%m-%d-%Y' )" title="Date of Birth (mm-dd-yy)" primary="false" />
+			<column id="age" name="TIMESTAMPDIFF(YEAR, DATE( CONCAT(d.year_of_birth,'-',d.month_of_birth,'-',d.date_of_birth) ), CURDATE() )" title="Age" primary="false" />
+			<column id="phone" name="IF(d.phone IS NULL OR d.phone='', 'N/A', d.phone )" title="Phone(H)" primary="false" />
+			<column id="phone2" name="IF(d.phone2 IS NULL OR d.phone2='', 'N/A', d.phone2)" title="Phone(W)" primary="false" />
+			<column id="phone3" name="IF(e.value IS NULL OR e.value='', 'N/A', e.value)" title="Cell Phone" primary="false" />
+			<column id="address" name="IF(d.address IS NULL OR d.address='', 'N/A', d.address )" title="Address" primary="false" />
+			<column id="city" name="IF(d.city IS NULL OR d.city='', 'N/A', d.city )" title="City" primary="false" />
+
+		</exportColumns>
+		<query>
+			<!-- Drilldown SQL Query here -->
+SELECT
+d.*
+FROM demographic d
+LEFT JOIN demographicExt e ON d.demographic_no=e.demographic_no AND e.key_val='demo_cell'
+  AND e.date_time=(SELECT MAX(de.date_time) FROM demographicExt de WHERE e.demographic_no=de.demographic_no)	
+WHERE d.provider_no LIKE ${provider}
+AND d.patient_status LIKE ${pstatus}
+AND ((LENGTH(phone) &lt; LENGTH("###-###-####") AND LENGTH(phone2) &lt; LENGTH("###-###-####" ) AND LENGTH(e.value) &lt; LENGTH("###-###-####")) OR (address is NULL OR address="") OR (city is NULL OR city=""));
+		</query>
+	</drillDownQuery>
+</indicatorTemplateXML>
