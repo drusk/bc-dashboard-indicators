@@ -3,17 +3,17 @@
 	<author>OSCAR BC</author>
 	<uid></uid>
 	<heading>
-		<category>CDM</category>
+		<category>CDM (Click on the pie chart to see the patients included in the pie chart)</category>
 		<subCategory>Ischemic Heart Disease</subCategory>
 		<name>Ischemic Heart Disease Prevalence</name>
-		<definition>% of active patients in the practice coded with Ischemic Heart Disease.</definition>
+		<definition>Proportion of active patients in the practice coded with Ischemic Heart Disease.</definition>
 		<framework>DoBC CPQI PSP Panel</framework>
 		<frameworkVersion>08-02-2017</frameworkVersion>
 		<notes>
 i) Heart disease patients: "Patient Status: Active
-AND has a Current Problem List/Profile item code of 414545008  OR starting with 414"
+AND has a Current Problem List/Profile item code of 414545008  OR starting with 410-414"
 ii) Other patients: "Patient Status: Active
-AND does not have a Current Problem List/Profile item code of 414545008  OR starting with 414"
+AND does not have a Current Problem List/Profile item code of 414545008  OR starting with 410-414"
 		</notes>
 	</heading>
 	<indicatorQuery>
@@ -31,27 +31,28 @@ AND does not have a Current Problem List/Profile item code of 414545008  OR star
 			-->
 			<parameter id="provider" name="provider_no" value="loggedInProvider" />
 			<parameter id="pstatus" name="Patient Status" value="'AC'" />
-			<parameter id="dxcodesICD" name="Dx Codes (ICD)" value="414" />
+			<parameter id="dxcodesICD" name="Dx Codes (ICD)" value="410,411,412,413,414" />
 			<parameter id="dxcodesSysICD" name="DX CodeSystem (ICD)" value="'icd9'" />
 			<parameter id="dxcodesSnoMed" name="Dx Codes (SnoMed)" value="414545008" />
 			<parameter id="dxcodesSysSnoMed" name="Dx CodeSystem (SnoMed)" value="'snomed%'" />
+			<parameter id="excludedPatient" name="Excluded Patient" value="excludedPatient" />
 		</params>
 		<query>
 			<!-- Indicator SQL Query here -->
 SELECT
- -- PERCENT OF TOTAL PATIENTS NOTED AS ACTIVE WITH CURRENT ISCHEMIC HEART DISEASE
- IF( COUNT(fin.patient) > 0, SUM( IF( dxresearch_code is not NULL , 1, 0) ) , 0 ) AS "% Active, Current Ischemic Heart Disease",
- -- PERCENT OF TOTAL PATIENTS NOTED AS ACTIVE WITHOUT CURRENT ISCHEMIC HEART DISEASE
- IF( COUNT(fin.patient) > 0, SUM( IF( dxresearch_code is NULL , 1, 0) ) , 0 ) AS "% Active, No Current Ischemic Heart Disease"
+ -- TOTAL NUMBER OF PATIENTS NOTED AS ACTIVE WITH CURRENT ISCHEMIC HEART DISEASE
+ IF( COUNT(fin.patient) &gt; 0, SUM( IF( dxresearch_code is not NULL , 1, 0) ) , 0 ) AS "Number Active, Current Ischemic Heart Disease",
+ -- TOTAL NUMBER OF PATIENTS NOTED AS ACTIVE WITHOUT CURRENT ISCHEMIC HEART DISEASE
+ IF( COUNT(fin.patient) &gt; 0, SUM( IF( dxresearch_code is NULL , 1, 0) ) , 0 ) AS "Number Active, No Current Ischemic Heart Disease"
 FROM (
  SELECT d.demographic_no AS patient, d.patient_status AS pt_status, dxresearch_code
  FROM demographic d
  LEFT JOIN (
-  SELECT demographic_no, dxresearch_code, count(dxresearch_code)
+  SELECT demographic_no, dxresearch_code, COUNT(dxresearch_code)
   FROM dxresearch
   WHERE status='A' AND
   (
-   (LEFT(dxresearch_code, 3) IN ('414') AND coding_system = ${dxcodesSysICD}) OR
+   (LEFT(dxresearch_code, 3) IN ('410', '411', '412', '413', '414') AND coding_system = ${dxcodesSysICD}) OR
    (dxresearch_code IN ('414545008') AND coding_system LIKE ${dxcodesSysSnoMed})
    )
   GROUP BY demographic_no
@@ -59,6 +60,7 @@ FROM (
  ) problems
  ON d.demographic_no = problems.demographic_no
  WHERE d.provider_no LIKE ${provider} AND d.patient_status = ${pstatus}
+ AND d.demographic_no NOT IN ${excludedPatient}
 ) fin
 		</query>
 	</indicatorQuery>
@@ -67,10 +69,11 @@ FROM (
 		<params>
 			<parameter id="provider" name="provider_no" value="loggedInProvider" />	
 			<parameter id="pstatus" name="Patient Status" value="'AC'" />
-			<parameter id="dxcodesICD" name="Dx Codes (ICD)" value="414" />
+			<parameter id="dxcodesICD" name="Dx Codes (ICD)" value="410,411,412,413,414" />
 			<parameter id="dxcodesSysICD" name="DX CodeSystem (ICD)" value="'icd9'" />
 			<parameter id="dxcodesSnoMed" name="Dx Codes (SnoMed)" value="414545008" />
 			<parameter id="dxcodesSysSnoMed" name="Dx CodeSystem (SnoMed)" value="'snomed%'" />
+			<parameter id="excludedPatient" name="Excluded Patient" value="excludedPatient" />
 		</params>
 		<displayColumns>
 			<column id="demographic" name="d.demographic_no" title="Patient Id" primary="true" />
@@ -87,6 +90,10 @@ FROM (
 			<column id="age" name="TIMESTAMPDIFF(YEAR, DATE( CONCAT(d.year_of_birth,'-',d.month_of_birth,'-',d.date_of_birth) ), CURDATE() )" title="Age" primary="false" />
 			<column id="dxcode" title="Dx System/Code" name="CONCAT(MIN(dxr.coding_system),'/',MIN(dxr.dxresearch_code),IF( MIN(dxr.dxresearch_code) != MAX(dxr.dxresearch_code),CONCAT( ' &amp; ', MAX(dxr.coding_system), '/', MAX(dxr.dxresearch_code) ),'') )" primary="false" />
 		</exportColumns>
+		<drillDownActions>
+			<action id="tickler" name="Tickler"/>
+			<action id="demoExcl" name="Patient Exclusion"/>
+		</drillDownActions>
 		<query>
 			<!-- Drilldown SQL Query here -->
 SELECT
@@ -97,11 +104,12 @@ ON d.demographic_no = dxr.demographic_no
 WHERE d.patient_status=${pstatus}
 AND
 (
- (LEFT(dxr.dxresearch_code, 3) IN ('414') AND dxr.coding_system = ${dxcodesSysICD}) OR
+ (LEFT(dxr.dxresearch_code, 3) IN ('410', '411', '412', '413', '414') AND dxr.coding_system = ${dxcodesSysICD}) OR
  (dxr.dxresearch_code IN ('414545008') AND dxr.coding_system LIKE ${dxcodesSysSnoMed})
  )
 AND dxr.status = 'A'
 AND d.provider_no LIKE ${provider}
+AND d.demographic_no NOT IN ${excludedPatient}
 GROUP BY d.demographic_no
 ORDER BY COUNT(d.demographic_no) DESC, d.demographic_no
 		</query>

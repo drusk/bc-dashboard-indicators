@@ -3,8 +3,8 @@
 	<author>OSCAR BC</author>
 	<uid></uid>
 	<heading>
-		<category>General (Click on pie-chart to drilldown to patients)</category>
-		<subCategory>Polypharmacy (Click on pie-chart to drilldown to patients)</subCategory>
+		<category>Home</category>
+		<subCategory>Polypharmacy</subCategory>
 		<name>Active Med Count</name>
 		<definition>% of active patients with an active continuous medication count of 0, 1-4, 5-9 or 10+.</definition>
 		<framework>DoBC CPQI PSP Panel</framework>

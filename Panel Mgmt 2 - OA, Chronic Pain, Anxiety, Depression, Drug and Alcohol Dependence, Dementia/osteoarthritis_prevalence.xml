@@ -3,10 +3,10 @@
 	<author>OSCAR BC</author>
 	<uid></uid>
 	<heading>
-		<category>CDM</category>
+		<category>CDM (Click on the pie chart to see the patients included in the pie chart)</category>
 		<subCategory>Osteoarthritis</subCategory>
 		<name>Osteoarthritis Prevalence</name>
-		<definition>% of active patients in the practice coded with Osteoarthritis.</definition>
+		<definition>Proportion of active patients in the practice coded with Osteoarthritis.</definition>
 		<framework>DoBC CPQI PSP Panel</framework>
 		<frameworkVersion>08-02-2017</frameworkVersion>
 		<notes>
@@ -40,15 +40,15 @@ AND does not have a Current Problem List/Profile item code of 396275006 OR start
 		<query>
 			<!-- Indicator SQL Query here -->
 SELECT
- -- PERCENT OF TOTAL PATIENTS NOTED AS ACTIVE WITH CURRENT OSTEOARTHRITIS
- IF( COUNT(fin.patient) > 0, SUM( IF( dxresearch_code is not NULL , 1, 0) ) , 0 ) AS "% Active, Current Osteoarthritis",
- -- PERCENT OF TOTAL PATIENTS NOTED AS ACTIVE WITHOUT CURRENT OSTEOARTHRITIS
- IF( COUNT(fin.patient) > 0, SUM( IF( dxresearch_code is NULL , 1, 0) ) , 0 ) AS "% Active, No Current Osteoarthritis"
+ -- TOTAL NUMBER OF PATIENTS NOTED AS ACTIVE WITH CURRENT OSTEOARTHRITIS
+ IF( COUNT(fin.patient) &gt; 0, SUM( IF( dxresearch_code is not NULL , 1, 0) ) , 0 ) AS "Number Active, Current Osteoarthritis",
+ -- TOTAL NUMBER OF PATIENTS NOTED AS ACTIVE WITHOUT CURRENT OSTEOARTHRITIS
+ IF( COUNT(fin.patient) &gt; 0, SUM( IF( dxresearch_code is NULL , 1, 0) ) , 0 ) AS "Number Active, No Current Osteoarthritis"
 FROM (
  SELECT d.demographic_no AS patient, d.patient_status AS pt_status, dxresearch_code
  FROM demographic d
  LEFT JOIN (
-  SELECT demographic_no, dxresearch_code, count(dxresearch_code)
+  SELECT demographic_no, dxresearch_code, COUNT(dxresearch_code)
   FROM dxresearch
   WHERE status='A' AND
   (
@@ -90,10 +90,10 @@ FROM (
 			<column id="age" name="TIMESTAMPDIFF(YEAR, DATE( CONCAT(d.year_of_birth,'-',d.month_of_birth,'-',d.date_of_birth) ), CURDATE() )" title="Age" primary="false" />
 			<column id="dxcode" title="Dx System/Code" name="CONCAT(MIN(dxr.coding_system),'/',MIN(dxr.dxresearch_code),IF( MIN(dxr.dxresearch_code) != MAX(dxr.dxresearch_code),CONCAT( ' &amp; ', MAX(dxr.coding_system), '/', MAX(dxr.dxresearch_code) ),'') )" primary="false" />
 		</exportColumns>
-                <drillDownActions>
+		<drillDownActions>
 			<action id="tickler" name="Tickler"/>
 			<action id="demoExcl" name="Patient Exclusion"/>
-               </drillDownActions>
+		</drillDownActions>
 		<query>
 			<!-- Drilldown SQL Query here -->
 SELECT
