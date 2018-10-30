@@ -3,7 +3,7 @@
 	<author>OSCAR BC</author>
 	<uid></uid>
 	<heading>
-		<category>General</category>
+		<category>General (Click on the pie chart to see the patients included in the pie chart)</category>
 		<subCategory>Patient Population</subCategory>
 		<name>Active Patients</name>
 		<definition>% of active patients in the practice last seen &lt; 3 years, 3-5 years, 5+ years and never seen.</definition>

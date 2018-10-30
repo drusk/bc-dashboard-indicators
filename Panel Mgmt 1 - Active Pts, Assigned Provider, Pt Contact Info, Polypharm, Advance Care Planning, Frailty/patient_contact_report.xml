@@ -3,7 +3,7 @@
 	<author>OSCAR BC</author>
 	<uid></uid>
 	<heading>
-		<category>General</category>
+		<category>General (Click on the pie chart to see the patients included in the pie chart)</category>
 		<subCategory>Patient Population</subCategory>
 		<name>Patient Contact</name>
 		<definition># of active patients with incomplete contact information in comparison to # all active patients

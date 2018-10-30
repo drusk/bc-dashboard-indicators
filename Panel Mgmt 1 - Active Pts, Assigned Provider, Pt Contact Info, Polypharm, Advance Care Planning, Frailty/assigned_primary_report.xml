@@ -3,7 +3,7 @@
 	<author>OSCAR BC</author>
 	<uid></uid>
 	<heading>
-		<category>General</category>
+		<category>General (Click on the pie chart to see the patients included in the pie chart)</category>
 		<subCategory>Patient Population</subCategory>
 		<name>No Assigned Primary</name>
 		<definition># of active patients without an assigned primary

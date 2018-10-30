@@ -3,7 +3,7 @@
 	<author>OSCAR BC</author>
 	<uid></uid>
 	<heading>
-		<category>Home</category>
+		<category>Home (Click on the pie chart to see the patients included in the pie chart)</category>
 		<subCategory>Polypharmacy</subCategory>
 		<name>Active Med Count</name>
 		<definition>% of active patients with an active continuous medication count of 0, 1-4, 5-9 or 10+.</definition>
