@@ -29,8 +29,8 @@
 		<query>
 		  <!-- Indicator SQL Query here -->
 SELECT
-	SUM(fin.NO_ASSIGNED_PRIMARY) AS "% Active, No Assigned Primary",
-	SUM(fin.OTHER_PATIENTS) AS "% Active, Assigned Primary"
+	SUM(fin.NO_ASSIGNED_PRIMARY) AS "Number Active, No Assigned Primary",
+	SUM(fin.OTHER_PATIENTS) AS "Number Active, Assigned Primary"
 FROM (
 	SELECT
 		IF( d.provider_no IS NULL OR d.provider_no = '' OR p.provider_no IS NULL ,1 ,0 ) AS NO_ASSIGNED_PRIMARY,

@@ -28,8 +28,8 @@
 		<query>
 		  <!-- Indicator SQL Query here -->
 SELECT
-	SUM(fin.THREE) AS "% Active, Seen within 3 years",
-	SUM(fin.ALL_PATIENTS)-SUM(fin.THREE) AS "% Active, Not seen within 3 years"
+	SUM(fin.THREE) AS "Number Active, Seen within 3 years",
+	SUM(fin.ALL_PATIENTS)-SUM(fin.THREE) AS "Number Active, Not seen within 3 years"
 FROM (
 	SELECT
 		IF( DATE_SUB(CURDATE() , INTERVAL 3 YEAR) &lt;= DATE( MAX(cmn.observation_date) ) ,1 ,0 ) AS THREE, 

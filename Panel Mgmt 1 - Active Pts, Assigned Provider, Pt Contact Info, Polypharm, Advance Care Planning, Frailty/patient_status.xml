@@ -1,0 +1,101 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<indicatorTemplateXML>
+	<author>OSCAR BC</author>
+	<uid></uid>
+	<heading>
+		<category>General (Click on the pie chart to see the patients included in the pie chart)</category>
+		<subCategory>Patient Population</subCategory>
+		<name>Patient Status (Seen/Billed)</name>
+		<definition>Number of active patients in the practice seen within last 3 years and number not seen in last 3 years.</definition>
+		<framework>DoBC CPQI PSP Panel</framework>
+		<frameworkVersion>08-02-2017</frameworkVersion>
+		<notes></notes>
+	</heading>
+	<indicatorQuery>
+		<version>03-13-2018</version>
+		<params>
+			<!-- 
+				Use this parameter in the query as ${provider}
+				This parameter should be used for fetching patient's assigned to a MRP.
+				ie: WHERE demographic.provider_no = ${provider}
+			-->
+			<parameter id="provider" name="provider_no" value="loggedInProvider" />
+			<parameter id="pstatus" name="Patient Status" value="'AC'" />
+			<parameter id="billingCodeExcluded" name="Billing Code Excluded" value="'03333'" />
+		</params>
+		<query>
+		  <!-- Indicator SQL Query here -->
+SELECT
+	SUM(fin.THREE) AS "Number Active, Seen/Billed within 3 years",
+	SUM(fin.NOT_SEEN_THREE) AS "Number Active, Not seen/billed within 3 years"
+FROM (
+	SELECT
+	  IF( DATE_SUB(CURDATE() , INTERVAL 3 YEAR) &lt;= DATE( MAX(cmn.observation_date) ) OR
+	    DATE_SUB(CURDATE() , INTERVAL 3 YEAR) &lt;= DATE( MAX(bm.service_date) ) ,1 ,0 ) AS THREE,
+	  IF( DATE_SUB(CURDATE() , INTERVAL 3 YEAR) &lt;= DATE( MAX(cmn.observation_date) ) OR
+	    DATE_SUB(CURDATE() , INTERVAL 3 YEAR) &lt;= DATE( MAX(bm.service_date) ) ,0 ,1 ) AS NOT_SEEN_THREE
+	FROM demographic d
+	LEFT JOIN casemgmt_note cmn
+	ON ( d.demographic_no = cmn.demographic_no AND cmn.signed = 1 AND cmn.provider_no != '-1'  )
+	LEFT JOIN billingmaster bm
+	ON ( d.demographic_no = bm.demographic_no AND bm.dx_code1 != ${billingCodeExcluded} )
+	WHERE d.provider_no LIKE ${provider}
+	AND d.patient_status LIKE ${pstatus}
+	GROUP BY d.demographic_no HAVING count(d.demographic_no) > -1
+) fin;
+		</query>
+	</indicatorQuery>
+	<drillDownQuery>
+		<version>03-13-2018</version>
+		<params>
+			<parameter id="provider" name="provider_no" value="loggedInProvider" />	
+			<parameter id="pstatus" name="Patient Status" value="'AC'" />
+			<parameter id="billingCodeExcluded" name="Billing Code Excluded" value="'03333'" />
+		</params>
+		
+		<range>
+			<lowerLimit id="billingdate" label="From Date" name="Date" value="DATE_SUB( NOW(), INTERVAL 3 YEAR )" />
+			<upperLimit id="billingdate" label="Date Today" name="Date" value="NOW()" />
+			<lowerLimit id="visitdate" label="From Date" name="Date" value="DATE_SUB( NOW(), INTERVAL 3 YEAR )" />
+			<upperLimit id="visitdate" label="Date Today" name="Date" value="NOW()" />
+		</range>
+		
+		<displayColumns>
+			<column id="demographic" name="d.demographic_no" title="Patient Id" primary="true" />
+			<column id="name" name="CONCAT( d.last_name, ', ', d.first_name )" title="Patient Name" primary="false" />
+			<column id="dob" name="DATE_FORMAT( CONCAT(d.year_of_birth,'-',d.month_of_birth,'-',d.date_of_birth), '%Y-%m-%d' )" title="Date of Birth (yy-mm-dd)" primary="false" />
+			<column id="age" name="TIMESTAMPDIFF(YEAR, DATE( CONCAT(d.year_of_birth,'-',d.month_of_birth,'-',d.date_of_birth) ), CURDATE() )" title="Age" primary="false" />	
+			<column id="lastEncounter" name='IF(MAX(cmn.observation_date) IS NOT NULL,DATE_FORMAT(MAX(cmn.observation_date),"%Y%m%d"),"")' title="Last Encounter (yymmdd)" primary="false" />
+			<column id="lastBilling" name="IF(MAX(bm.service_date) IS NOT NULL,MAX(bm.service_date),'')" title="Last Billing (yymmdd)" primary="false" />
+		</displayColumns>
+		<exportColumns>
+			<column id="demographic" name="d.demographic_no" title="Patient Id" primary="true" />
+			<column id="name" name="CONCAT( d.last_name, ', ', d.first_name )" title="Patient Name" primary="false" />
+			<column id="dob" name="DATE_FORMAT( CONCAT(d.year_of_birth,'-',d.month_of_birth,'-',d.date_of_birth), '%Y-%m-%d' )" title="Date of Birth (yy-mm-dd)" primary="false" />
+			<column id="age" name="TIMESTAMPDIFF(YEAR, DATE( CONCAT(d.year_of_birth,'-',d.month_of_birth,'-',d.date_of_birth) ), CURDATE() )" title="Age" primary="false" />	
+			<column id="lastEncounter" name='IF(MAX(cmn.observation_date) IS NOT NULL,DATE_FORMAT(MAX(cmn.observation_date),"%Y%m%d"),"")' title="Last Encounter (yymmdd)" primary="false" />
+			<column id="lastBilling" name="IF(MAX(bm.service_date) IS NOT NULL,MAX(bm.service_date),'')" title="Last Billing (yymmdd)" primary="false" />
+		</exportColumns>
+		<drillDownActions>
+			<action id="tickler" name="Tickler"/>
+			<action id="patientStatusUpdate" name="Set Patient Inactive"/>
+		</drillDownActions>
+		<query>
+			<!-- Drilldown SQL Query here -->
+SELECT
+    d.*,
+    d.patient_status AS pt_status,
+    max(cmn.observation_date) as last_encounter,
+    max(bm.service_date) as last_billing
+FROM demographic d
+LEFT JOIN casemgmt_note cmn
+ON (  d.demographic_no = cmn.demographic_no AND cmn.signed = 1 AND cmn.provider_no != '-1'  )
+LEFT JOIN billingmaster bm
+ON ( d.demographic_no = bm.demographic_no AND bm.dx_code1 != ${billingCodeExcluded} )
+WHERE d.provider_no LIKE ${provider}
+AND d.patient_status LIKE ${pstatus}
+GROUP BY d.demographic_no HAVING count(d.demographic_no) > -1
+ORDER BY MAX(cmn.observation_date) ASC, MAX(bm.service_date) ASC, d.demographic_no ASC
+		</query>
+	</drillDownQuery>	
+</indicatorTemplateXML>

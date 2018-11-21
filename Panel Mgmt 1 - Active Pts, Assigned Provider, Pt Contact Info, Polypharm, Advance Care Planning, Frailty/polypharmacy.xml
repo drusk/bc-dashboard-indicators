@@ -6,7 +6,7 @@
 		<category>Home (Click on the pie chart to see the patients included in the pie chart)</category>
 		<subCategory>Polypharmacy</subCategory>
 		<name>Active Med Count</name>
-		<definition>% of active patients with an active continuous medication count of 0, 1-4, 5-9 or 10+.</definition>
+		<definition>Number of active patients with an active continuous medication count of 0, 1-4, 5-9 or 10+.</definition>
 		<framework>DoBC CPQI PSP Panel</framework>
 		<frameworkVersion>08-02-2017</frameworkVersion>
 		<notes></notes>
