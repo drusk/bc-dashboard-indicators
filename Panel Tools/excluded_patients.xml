@@ -17,9 +17,9 @@
 		<version>08-02-2017</version>
 		<params>
 			<!-- 
-				Use this parameter in the query as ${provider}
+				Use this parameter in the query as '${provider}'
 				This parameter should be used for fetching patient's assigned to a MRP.
-				ie: WHERE demographic.provider_no = ${provider}
+				ie: WHERE demographic.provider_no = '${provider}'
 			-->
 			<parameter id="provider" name="provider_no" value="loggedInProvider" />
 			<parameter id="pstatus" name="Patient Status" value="'AC'" />
@@ -36,8 +36,8 @@ FROM (
 	FROM demographic d
 	LEFT JOIN demographicExt dext
 	ON (  d.demographic_no = dext.demographic_no )
-	WHERE d.provider_no LIKE ${provider}
-	AND dext.provider_no LIKE ${provider}
+	WHERE d.provider_no LIKE '${provider}'
+	AND dext.provider_no LIKE '${provider}'
 	AND d.patient_status LIKE ${pstatus}
 	AND dext.key_val = "excludeIndicator"
 ) fin;
@@ -76,8 +76,8 @@ SELECT
 FROM demographic d
 LEFT JOIN demographicExt dext
 ON (  d.demographic_no = dext.demographic_no )
-WHERE d.provider_no LIKE ${provider}
-AND dext.provider_no like ${provider}
+WHERE d.provider_no LIKE '${provider}'
+AND dext.provider_no like '${provider}'
 AND d.patient_status LIKE ${pstatus}
 AND dext.key_val = "excludeIndicator"
 ORDER BY dext.date_time DESC, d.demographic_no ASC

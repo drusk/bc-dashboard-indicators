@@ -25,9 +25,9 @@ AND does not have a Current Problem List/Profile item code of 48694002, 19748000
 					"all" ie: value="all" including null.
 					"loggedInProvider" ie:
 				Default is "loggedInProvider"
-				Use this parameter in the query as ${provider}
+				Use this parameter in the query as '${provider}'
 				This parameter should be used for fetching patient's assigned to a MRP.
-				ie: WHERE demographic.provider_no = ${provider}
+				ie: WHERE demographic.provider_no = '${provider}'
 			-->
 			<parameter id="provider" name="provider_no" value="loggedInProvider" />
 			<parameter id="pstatus" name="Patient Status" value="'AC'" />
@@ -59,7 +59,7 @@ FROM (
   ORDER BY demographic_no
  ) problems
  ON d.demographic_no = problems.demographic_no
- WHERE d.provider_no LIKE ${provider} AND d.patient_status = ${pstatus}
+ WHERE d.provider_no LIKE '${provider}' AND d.patient_status = ${pstatus}
  AND d.demographic_no NOT IN ${excludedPatient}
 ) fin
 		</query>
@@ -108,7 +108,7 @@ AND
  (dxr.dxresearch_code IN ('48694002', '197480006') AND dxr.coding_system LIKE ${dxcodesSysSnoMed})
  )
 AND dxr.status = 'A'
-AND d.provider_no LIKE ${provider}
+AND d.provider_no LIKE '${provider}'
 AND d.demographic_no NOT IN ${excludedPatient}
 GROUP BY d.demographic_no
 ORDER BY COUNT(d.demographic_no) DESC, d.demographic_no

@@ -122,7 +122,7 @@ FROM (
   ON (d.demographic_no = MEDS.demographic_no) 
   WHERE d.patient_status LIKE ${active}
   AND d.demographic_no &gt; 0
-  AND d.provider_no LIKE ${provider}
+  AND d.provider_no LIKE '${provider}'
   AND d.demographic_no NOT IN ${excludedPatient}
 ) fin
 		</query>
@@ -242,7 +242,7 @@ FROM (
   WHERE d.patient_status LIKE ${active}
   AND d.demographic_no &gt; 0
   AND ( dxr.dxresearch_code IS NULL AND ((BILLING.billcount IS NOT NULL AND BILLING.billcount &gt;= ${numOfBills}) OR (VISIT.visitcount IS NOT NULL AND VISIT.visitcount &gt;= ${numOfVisits}) OR (MEDS.numOfMeds IS NOT NULL AND MEDS.numOfMeds &gt;= ${numOfMeds})))
-  AND d.provider_no LIKE ${provider}
+  AND d.provider_no LIKE '${provider}'
   AND d.demographic_no NOT IN ${excludedPatient}
   ORDER BY d.demographic_no
 		</query>

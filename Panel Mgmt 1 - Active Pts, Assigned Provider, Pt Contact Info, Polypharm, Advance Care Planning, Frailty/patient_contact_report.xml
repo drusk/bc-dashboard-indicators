@@ -19,9 +19,9 @@
 		<version>03-13-2018</version>
 		<params>
 			<!-- 
-				Use this parameter in the query as ${provider}
+				Use this parameter in the query as '${provider}'
 				This parameter should be used for fetching patient's assigned to a MRP.
-				ie: WHERE demographic.provider_no = ${provider}
+				ie: WHERE demographic.provider_no = '${provider}'
 			-->
 			<parameter id="provider" name="provider_no" value="loggedInProvider" />
 			<parameter id="pstatus" name="Patient Status" value="'AC'" />
@@ -38,7 +38,7 @@ FROM (
 	FROM demographic d
 	LEFT JOIN demographicExt e ON d.demographic_no=e.demographic_no AND
 	  e.key_val='demo_cell' AND e.date_time=(SELECT MAX(de.date_time) FROM demographicExt de WHERE e.demographic_no=de.demographic_no)
-	WHERE d.provider_no LIKE ${provider}
+	WHERE d.provider_no LIKE '${provider}'
 	AND d.patient_status LIKE ${pstatus}
 ) fin;
 		</query>
@@ -81,7 +81,7 @@ d.*
 FROM demographic d
 LEFT JOIN demographicExt e ON d.demographic_no=e.demographic_no AND e.key_val='demo_cell'
   AND e.date_time=(SELECT MAX(de.date_time) FROM demographicExt de WHERE e.demographic_no=de.demographic_no)	
-WHERE d.provider_no LIKE ${provider}
+WHERE d.provider_no LIKE '${provider}'
 AND d.patient_status LIKE ${pstatus}
 AND ((LENGTH(phone) &lt; LENGTH("###-###-####") AND LENGTH(phone2) &lt; LENGTH("###-###-####" ) AND LENGTH(e.value) &lt; LENGTH("###-###-####")) OR (address is NULL OR address="") OR (city is NULL OR city=""));
 		</query>
