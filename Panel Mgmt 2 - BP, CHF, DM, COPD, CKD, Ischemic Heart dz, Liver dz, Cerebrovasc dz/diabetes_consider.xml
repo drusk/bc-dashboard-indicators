@@ -140,10 +140,12 @@ FROM (
       SELECT demographicNo, MAX(dateObserved) AS dateObserved
       FROM measurements
       WHERE type = ${obs1Name}
+      AND dataField REGEXP '^[0-9\.]+$'
       GROUP BY demographicNo
     ) mlast
     ON m.demographicNo = mlast.demographicNo
     WHERE m.type = ${obs1Name}
+    AND m.dataField REGEXP '^[0-9\.]+$'
     AND m.dateObserved = mlast.dateObserved
     AND DATE(m.dateObserved) &gt; ${lowerLimit.labdatelast}
     AND m.demographicNo &gt; 0
@@ -157,10 +159,12 @@ FROM (
       SELECT demographicNo, MAX(dateObserved) AS dateObserved
       FROM measurements
       WHERE type = ${obs2Name}
+      AND dataField REGEXP '^[0-9\.]+$'
       GROUP BY demographicNo
     ) mlast
     ON m.demographicNo = mlast.demographicNo
     WHERE m.type = ${obs2Name}
+    AND m.dataField REGEXP '^[0-9\.]+$'
     AND m.dateObserved = mlast.dateObserved
     AND DATE(m.dateObserved) &gt; ${lowerLimit.labdatelast}
     AND m.demographicNo &gt; 0
@@ -170,7 +174,7 @@ FROM (
     SELECT m.demographicNo AS demographic_no, m.dataField, COUNT(m.dataField) AS countOBS
     FROM measurements m
     WHERE m.type = ${obs1Name}
-    AND m.dataField &gt;= ${obs1Result}
+    AND m.dataField REGEXP '^[0-9\.]+$' AND m.dataField &gt;= ${obs1Result}
     AND DATE(m.dateObserved) &gt; ${lowerLimit.labdateObs}
     AND m.demographicNo &gt; 0
     GROUP BY m.demographicNo HAVING COUNT(m.demographicNo) &gt; -1
@@ -317,10 +321,12 @@ FROM (
       SELECT demographicNo, MAX(dateObserved) AS dateObserved
       FROM measurements
       WHERE type = ${obs1Name}
+      AND dataField REGEXP '^[0-9\.]+$'
       GROUP BY demographicNo
     ) mlast
     ON m.demographicNo = mlast.demographicNo
     WHERE m.type = ${obs1Name}
+    AND m.dataField REGEXP '^[0-9\.]+$'
     AND m.dateObserved = mlast.dateObserved
     AND DATE(m.dateObserved) &gt; ${lowerLimit.labdatelast}
     AND m.demographicNo &gt; 0
@@ -334,10 +340,12 @@ FROM (
       SELECT demographicNo, MAX(dateObserved) AS dateObserved
       FROM measurements
       WHERE type = ${obs2Name}
+      AND dataField REGEXP '^[0-9\.]+$'
       GROUP BY demographicNo
     ) mlast
     ON m.demographicNo = mlast.demographicNo
     WHERE m.type = ${obs2Name}
+    AND m.dataField REGEXP '^[0-9\.]+$'
     AND m.dateObserved = mlast.dateObserved
     AND DATE(m.dateObserved) &gt; ${lowerLimit.labdatelast}
     AND m.demographicNo &gt; 0
@@ -347,7 +355,7 @@ FROM (
     SELECT m.demographicNo AS demographic_no, m.dataField, COUNT(m.dataField) AS countOBS
     FROM measurements m
     WHERE m.type = ${obs1Name}
-    AND m.dataField &gt;= ${obs1Result}
+    AND m.dataField REGEXP '^[0-9\.]+$' AND m.dataField &gt;= ${obs1Result}
     AND DATE(m.dateObserved) &gt; ${lowerLimit.labdateObs}
     AND m.demographicNo &gt; 0
     GROUP BY m.demographicNo HAVING COUNT(m.demographicNo) &gt; -1

@@ -118,10 +118,12 @@ FROM (
       SELECT demographicNo, MAX(dateObserved) AS dateObserved
       FROM measurements
       WHERE type = ${obsName}
+      AND dataField REGEXP '^[0-9\.]+$'
       GROUP BY demographicNo
     ) mlast
     ON m.demographicNo = mlast.demographicNo
     WHERE m.type = ${obsName}
+    AND m.dataField REGEXP '^[0-9\.]+$'
     AND m.dateObserved = mlast.dateObserved
     AND (DATE(m.dateObserved) &gt; ${lowerLimit.obsdate})
     AND m.demographicNo &gt; 0
@@ -248,10 +250,12 @@ FROM (
       SELECT demographicNo, MAX(dateObserved) AS dateObserved
       FROM measurements
       WHERE type = ${obsName}
+      AND dataField REGEXP '^[0-9\.]+$'
       GROUP BY demographicNo
     ) mlast
     ON m.demographicNo = mlast.demographicNo
     WHERE m.type = ${obsName}
+    AND m.dataField REGEXP '^[0-9\.]+$'
     AND m.dateObserved = mlast.dateObserved
     AND (DATE(m.dateObserved) &gt; ${lowerLimit.obsdate})
     AND m.demographicNo &gt; 0
