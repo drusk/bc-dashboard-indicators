@@ -8,8 +8,17 @@ CONFIG_FILENAME = "config.json"
 
 
 class Indicator(object):
-    def __init__(self, name):
+    def __init__(self, name, category, sub_category,
+                 framework, framework_version,
+                 definition, notes, template):
         self.name = name
+        self.category = category
+        self.sub_category = sub_category
+        self.framework = framework
+        self.framework_version = framework_version
+        self.definition = definition
+        self.notes = notes
+        self.template = template
 
 
 class IndicatorParser(object):
@@ -17,9 +26,23 @@ class IndicatorParser(object):
         tree = xml.etree.ElementTree.parse(filehandle)
         root = tree.getroot()
 
-        name = root.find("./heading/name").text
+        def parse_text(xpath):
+            return root.find(xpath).text
 
-        return Indicator(name)
+        name = parse_text("./heading/name")
+        category = parse_text("./heading/category")
+        sub_category = parse_text("./heading/subCategory")
+        framework = parse_text("./heading/framework")
+        framework_version = parse_text("./heading/frameworkVersion")
+        definition = parse_text("./heading/definition")
+        notes = parse_text("./heading/notes")
+        template = xml.etree.ElementTree.tostring(root)
+
+        return Indicator(
+            name, category, sub_category,
+            framework, framework_version,
+            definition, notes, template
+        )
 
 
 class SQLGenerator(object):
@@ -70,9 +93,12 @@ def main():
                 indicator = parser.parse_indicator(indicator_filehandle)
                 dashboard_indicators[dashboard].append(indicator)
 
+    print_first = True
     for dashboard in dashboard_indicators:
         for indicator in dashboard_indicators[dashboard]:
-            print("{} {}".format(dashboard, indicator.name))
+            if print_first:
+                print("{} {}".format(dashboard, indicator.template))
+                print_first = False
 
 
 if __name__ == "__main__":
