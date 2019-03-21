@@ -36,7 +36,7 @@ class IndicatorParser(object):
         framework_version = parse_text("./heading/frameworkVersion")
         definition = parse_text("./heading/definition")
         notes = parse_text("./heading/notes")
-        template = xml.etree.ElementTree.tostring(root)
+        template = xml.etree.ElementTree.tostring(root, encoding="utf-8")
 
         return Indicator(
             name, category, sub_category,
@@ -46,8 +46,31 @@ class IndicatorParser(object):
 
 
 class SQLGenerator(object):
-    def generate_indicator_insert_statement(self, indicator):
-        return ""
+    def generate_indicator_insert_statement(self, indicator, dashboard_id):
+        def escape_special_characters(string):
+            string = string.replace("\"", "\\\"")
+            string = string.replace("'", "\\'")
+            return string
+
+        sql = (
+            "INSERT INTO `indicatorTemplate` (`dashboardId`, "
+            "`name`, `category`, `subCategory`, `framework`, "
+            "`frameworkVersion`, `definition`, `notes`, `template`, "
+            "`active`, `locked`, `shared`, `metricSetName`, `metricLabel`) "
+            "VALUES ({},'{}','{}','{}','{}','{}','{}','{}','{}',"
+            "'','\0',0,NULL,NULL);"
+        ).format(
+            dashboard_id,
+            indicator.name, indicator.category, indicator.sub_category,
+            indicator.framework, indicator.framework_version,
+            indicator.definition,
+            escape_special_characters(indicator.notes),
+            escape_special_characters(indicator.template.decode("utf-8"))
+        )
+
+        sql = sql.replace("\n", "\\n")
+
+        return sql
 
 
 class SQLWriter(object):
@@ -93,11 +116,13 @@ def main():
                 indicator = parser.parse_indicator(indicator_filehandle)
                 dashboard_indicators[dashboard].append(indicator)
 
+    sql_generator = SQLGenerator()
     print_first = True
     for dashboard in dashboard_indicators:
         for indicator in dashboard_indicators[dashboard]:
             if print_first:
-                print("{} {}".format(dashboard, indicator.template))
+                sql = sql_generator.generate_indicator_insert_statement(indicator, "@dashboardId1")
+                print(sql)
                 print_first = False
 
 
