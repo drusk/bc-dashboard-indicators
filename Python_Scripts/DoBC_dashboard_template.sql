@@ -11,7 +11,7 @@ CREATE TABLE IF NOT EXISTS `dashboard` (
   PRIMARY KEY (`id`)
 );
 /*!40101 SET character_set_client = @saved_cs_client */;
-SET @oscardoc_provider_no='999998';
+SET @oscardoc_provider_no='{oscardoc_provider_no}';
 INSERT INTO `dashboard` (`name`, `description`, `creator`, `edited`, `active`, `locked`) VALUES ('Panel Mgmt 1 - Active Pts, Assigned Provider, Pt Contact Info, Polypharm, Advance Care Planning, Frailty','DoBC Panel',@oscardoc_provider_no,NOW(),'','\0');
 SET @dashboardId1 = LAST_INSERT_ID();
 INSERT INTO `dashboard` (`name`, `description`, `creator`, `edited`, `active`, `locked`) VALUES ('Panel Mgmt 2 - BP, CHF, DM, COPD, CKD, Ischemic Heart dz, Liver dz, Cerebrovasc dz','DoBC Panel',@oscardoc_provider_no,NOW(),'','\0');

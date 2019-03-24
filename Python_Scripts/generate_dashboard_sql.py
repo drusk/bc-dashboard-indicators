@@ -4,6 +4,7 @@ import os
 import xml.etree.ElementTree
 
 
+OSCARDOC_PROVIDER_NO = "999998"
 CONFIG_FILENAME = "config.json"
 TEMPLATE_FILENAME = "DoBC_dashboard_template.sql"
 SCRIPT_DIRECTORY = os.path.dirname(__file__)
@@ -85,7 +86,10 @@ class SQLGenerator(object):
                 # TODO: real dashboard ID
                 insert_statements += "\n" + self.generate_indicator_insert_statement(indicator, "@dashboardId1")
 
-        return template.format(indicator_insert_statements=insert_statements)
+        return template.format(
+            oscardoc_provider_no=OSCARDOC_PROVIDER_NO,
+            indicator_insert_statements=insert_statements
+        )
 
 
 class IndicatorRepository(object):
