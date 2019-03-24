@@ -5,6 +5,8 @@ import xml.etree.ElementTree
 
 
 CONFIG_FILENAME = "config.json"
+TEMPLATE_FILENAME = "DoBC_dashboard_template.sql"
+SCRIPT_DIRECTORY = os.path.dirname(__file__)
 
 
 class Indicator(object):
@@ -16,8 +18,8 @@ class Indicator(object):
         self.sub_category = sub_category
         self.framework = framework
         self.framework_version = framework_version
-        self.definition = definition
-        self.notes = notes
+        self.definition = definition if definition is not None else ""
+        self.notes = notes if notes is not None else ""
         self.template = template
 
 
@@ -63,7 +65,7 @@ class SQLGenerator(object):
             dashboard_id,
             indicator.name, indicator.category, indicator.sub_category,
             indicator.framework, indicator.framework_version,
-            indicator.definition,
+            escape_special_characters(indicator.definition),
             escape_special_characters(indicator.notes),
             escape_special_characters(indicator.template.decode("utf-8"))
         )
@@ -71,6 +73,19 @@ class SQLGenerator(object):
         sql = sql.replace("\n", "\\n")
 
         return sql
+
+    def generate_dashboard_sql(self, dashboard_indicators):
+        with open(os.path.join(SCRIPT_DIRECTORY, TEMPLATE_FILENAME), "r") as filehandle:
+            template = filehandle.read()
+
+        # TODO more efficient?
+        insert_statements = ""
+        for dashboard in dashboard_indicators:
+            for indicator in dashboard_indicators[dashboard]:
+                # TODO: real dashboard ID
+                insert_statements += "\n" + self.generate_indicator_insert_statement(indicator, "@dashboardId1")
+
+        return template.format(indicator_insert_statements=insert_statements)
 
 
 class SQLWriter(object):
@@ -80,10 +95,9 @@ class SQLWriter(object):
 
 class IndicatorRepository(object):
     def __init__(self):
-        self.script_directory = os.path.dirname(__file__)
-        self.root_directory = os.path.dirname(self.script_directory)
+        self.root_directory = os.path.dirname(SCRIPT_DIRECTORY)
 
-        config_filepath = os.path.join(self.script_directory, CONFIG_FILENAME)
+        config_filepath = os.path.join(SCRIPT_DIRECTORY, CONFIG_FILENAME)
         with open(config_filepath, "r") as filehandle:
             self.config_data = json.load(filehandle)
 
@@ -106,6 +120,7 @@ def main():
     indicator_repository = IndicatorRepository()
     dashboards = indicator_repository.get_dashboard_names()
 
+    # TODO preserve order
     dashboard_indicators = collections.defaultdict(list)
 
     parser = IndicatorParser()
@@ -117,13 +132,10 @@ def main():
                 dashboard_indicators[dashboard].append(indicator)
 
     sql_generator = SQLGenerator()
-    print_first = True
-    for dashboard in dashboard_indicators:
-        for indicator in dashboard_indicators[dashboard]:
-            if print_first:
-                sql = sql_generator.generate_indicator_insert_statement(indicator, "@dashboardId1")
-                print(sql)
-                print_first = False
+    dashboard_sql = sql_generator.generate_dashboard_sql(dashboard_indicators)
+
+    # TODO write to file so we can have info printouts
+    print(dashboard_sql)
 
 
 if __name__ == "__main__":
