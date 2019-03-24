@@ -88,11 +88,6 @@ class SQLGenerator(object):
         return template.format(indicator_insert_statements=insert_statements)
 
 
-class SQLWriter(object):
-    def write(self, indicators, output_filehandle):
-        pass
-
-
 class IndicatorRepository(object):
     def __init__(self):
         self.root_directory = os.path.dirname(SCRIPT_DIRECTORY)
