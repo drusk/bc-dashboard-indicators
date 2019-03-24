@@ -19,8 +19,8 @@ class Indicator(object):
         self.sub_category = sub_category
         self.framework = framework
         self.framework_version = framework_version
-        self.definition = definition if definition is not None else ""
-        self.notes = notes if notes is not None else ""
+        self.definition = definition
+        self.notes = notes
         self.template = template
 
 
@@ -32,14 +32,29 @@ class IndicatorParser(object):
         def parse_text(xpath):
             return root.find(xpath).text
 
+        def check_not_none(value, value_name):
+            if value is None:
+                raise ValueError(
+                    "Indicator {} cannot be None".format(value_name)
+                )
+
         name = parse_text("./heading/name")
+        check_not_none(name, "name")
+
         category = parse_text("./heading/category")
+        check_not_none(category, "category")
+
         sub_category = parse_text("./heading/subCategory")
+        check_not_none(sub_category, "subCategory")
+
         framework = parse_text("./heading/framework")
         framework_version = parse_text("./heading/frameworkVersion")
-        definition = parse_text("./heading/definition")
-        notes = parse_text("./heading/notes")
+
+        definition = parse_text("./heading/definition") or ""
+        notes = parse_text("./heading/notes") or ""
+
         template = xml.etree.ElementTree.tostring(root, encoding="utf-8")
+        check_not_none(template, "template")
 
         return Indicator(
             name, category, sub_category,
