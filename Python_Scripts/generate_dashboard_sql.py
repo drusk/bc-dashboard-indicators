@@ -7,6 +7,7 @@ import xml.etree.ElementTree
 OSCARDOC_PROVIDER_NO = "999998"
 CONFIG_FILENAME = "config.json"
 TEMPLATE_FILENAME = "DoBC_dashboard_template.sql"
+OUTPUT_FILENAME = "DoBC_dashboard.sql"
 SCRIPT_DIRECTORY = os.path.dirname(__file__)
 
 
@@ -149,7 +150,11 @@ def main():
     dashboard_sql = sql_generator.generate_dashboard_sql(dashboard_indicators)
 
     # TODO write to file so we can have info printouts
-    print(dashboard_sql)
+    output_filepath = os.path.join(SCRIPT_DIRECTORY, OUTPUT_FILENAME)
+    with open(output_filepath, "w") as filehandle:
+        filehandle.write(dashboard_sql)
+
+    print("Generated {}".format(output_filepath))
 
 
 if __name__ == "__main__":
