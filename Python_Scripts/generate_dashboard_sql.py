@@ -111,8 +111,10 @@ class SQLGenerator(object):
         for index, dashboard in enumerate(dashboards):
             dashboardId = "@dashboardId{}".format(index + 1)
 
-            for indicator in dashboard.get_indicators():
-                insert_statements += "\n" + self.generate_indicator_insert_statement(indicator, dashboardId)
+            insert_statements += "\n".join(
+                self.generate_indicator_insert_statement(indicator, dashboardId)
+                for indicator in dashboard.get_indicators()
+            )
 
         return template.format(
             oscardoc_provider_no=OSCARDOC_PROVIDER_NO,
