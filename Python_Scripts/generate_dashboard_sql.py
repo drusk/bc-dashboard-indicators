@@ -87,7 +87,7 @@ class SQLGenerator(object):
             "`frameworkVersion`, `definition`, `notes`, `template`, "
             "`active`, `locked`, `shared`, `metricSetName`, `metricLabel`) "
             "VALUES ({},'{}','{}','{}','{}','{}','{}','{}','{}',"
-            "'','\0',0,NULL,NULL);"
+            "'','\\0',0,NULL,NULL);"
         ).format(
             dashboard_id,
             indicator.name, indicator.category, indicator.sub_category,
