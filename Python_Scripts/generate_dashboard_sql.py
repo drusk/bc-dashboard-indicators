@@ -166,7 +166,6 @@ def main():
     sql_generator = SQLGenerator()
     dashboard_sql = sql_generator.generate_dashboard_sql(dashboards)
 
-    # TODO write to file so we can have info printouts
     output_filepath = os.path.join(SCRIPT_DIRECTORY, OUTPUT_FILENAME)
     with open(output_filepath, "w") as filehandle:
         filehandle.write(dashboard_sql)
