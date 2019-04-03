@@ -7,7 +7,7 @@ OSCARDOC_PROVIDER_NO = "999998"
 CONFIG_FILENAME = "config.json"
 TEMPLATE_FILENAME = "DoBC_dashboard_template.sql"
 OUTPUT_FILENAME = "DoBC_dashboard.sql"
-SCRIPT_DIRECTORY = os.path.dirname(__file__)
+SCRIPT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 
 
 class Indicator(object):
