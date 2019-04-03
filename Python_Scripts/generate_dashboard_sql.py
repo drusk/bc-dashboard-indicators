@@ -1,4 +1,3 @@
-import collections
 import json
 import os
 import xml.etree.ElementTree
@@ -23,6 +22,18 @@ class Indicator(object):
         self.definition = definition
         self.notes = notes
         self.template = template
+
+
+class Dashboard(object):
+    def __init__(self, name):
+        self.name = name
+        self.indicators = []
+
+    def add_indicator(self, indicator):
+        self.indicators.append(indicator)
+
+    def get_indicators(self):
+        return self.indicators
 
 
 class IndicatorParser(object):
@@ -91,16 +102,17 @@ class SQLGenerator(object):
 
         return sql
 
-    def generate_dashboard_sql(self, dashboard_indicators):
+    def generate_dashboard_sql(self, dashboards):
         with open(os.path.join(SCRIPT_DIRECTORY, TEMPLATE_FILENAME), "r") as filehandle:
             template = filehandle.read()
 
         # TODO more efficient?
         insert_statements = ""
-        for dashboard in dashboard_indicators:
-            for indicator in dashboard_indicators[dashboard]:
-                # TODO: real dashboard ID
-                insert_statements += "\n" + self.generate_indicator_insert_statement(indicator, "@dashboardId1")
+        for index, dashboard in enumerate(dashboards):
+            dashboardId = "@dashboardId{}".format(index + 1)
+
+            for indicator in dashboard.get_indicators():
+                insert_statements += "\n" + self.generate_indicator_insert_statement(indicator, dashboardId)
 
         return template.format(
             oscardoc_provider_no=OSCARDOC_PROVIDER_NO,
@@ -133,21 +145,24 @@ class IndicatorRepository(object):
 
 def main():
     indicator_repository = IndicatorRepository()
-    dashboards = indicator_repository.get_dashboard_names()
-
-    # TODO preserve order
-    dashboard_indicators = collections.defaultdict(list)
+    dashboard_names = indicator_repository.get_dashboard_names()
 
     parser = IndicatorParser()
-    for dashboard in dashboards:
-        indicator_paths = indicator_repository.get_indicator_paths(dashboard)
+    dashboards = []
+
+    for dashboard_name in dashboard_names:
+        dashboard = Dashboard(dashboard_name)
+
+        indicator_paths = indicator_repository.get_indicator_paths(dashboard_name)
         for path in indicator_paths:
             with open(path, "rb") as indicator_filehandle:
                 indicator = parser.parse_indicator(indicator_filehandle)
-                dashboard_indicators[dashboard].append(indicator)
+                dashboard.add_indicator(indicator)
+
+        dashboards.append(dashboard)
 
     sql_generator = SQLGenerator()
-    dashboard_sql = sql_generator.generate_dashboard_sql(dashboard_indicators)
+    dashboard_sql = sql_generator.generate_dashboard_sql(dashboards)
 
     # TODO write to file so we can have info printouts
     output_filepath = os.path.join(SCRIPT_DIRECTORY, OUTPUT_FILENAME)
