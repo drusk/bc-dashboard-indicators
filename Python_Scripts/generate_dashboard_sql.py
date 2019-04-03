@@ -115,6 +115,9 @@ class SQLGenerator(object):
                 self.generate_indicator_insert_statement(indicator, dashboardId)
                 for indicator in dashboard.get_indicators()
             )
+            insert_statements += "\n"
+
+        insert_statements = insert_statements.rstrip()
 
         return template.format(
             oscardoc_provider_no=OSCARDOC_PROVIDER_NO,
