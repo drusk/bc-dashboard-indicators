@@ -17,6 +17,6 @@ at the top of the file.
 Any that need to change frequently should be extracted as command
 line arguments or to a separate configuration file.
 
-## DEPENDENCIES
+## Dependencies
 
-USES PYTHON 3. No third party libraries are used.
+Uses Python 3. No third party libraries are used.
