@@ -145,7 +145,7 @@ class IndicatorRepository(object):
         indicator_paths = []
 
         dashboard_directory = os.path.join(self.root_directory, dashboard)
-        for filename in os.listdir(dashboard_directory):
+        for filename in sorted(os.listdir(dashboard_directory)):
             if filename.endswith("xml"):
                 indicator_path = os.path.join(dashboard_directory, filename)
                 indicator_paths.append(indicator_path)
