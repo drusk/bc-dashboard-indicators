@@ -1,12 +1,19 @@
-import json
 import os
 import xml.etree.ElementTree
 
 
 OSCARDOC_PROVIDER_NO = "999998"
-CONFIG_FILENAME = "config.json"
+DASHBOARD_NAMES = [
+    "Panel Mgmt 1 - Active Pts, Assigned Provider, Pt Contact Info, Polypharm, Advance Care Planning, Frailty",
+    "Panel Mgmt 2 - BP, CHF, DM, COPD, CKD, Ischemic Heart dz, Liver dz, Cerebrovasc dz",
+    "Panel Mgmt 3 - OA, Chronic Pain, Anxiety, Depression, Drug and Alcohol Dependence, Dementia",
+    "Panel Mgmt Reports -Pop Histogram, Aggregate Spreadsheets for Pt Contact and Primary Provider",
+    "Panel Tools"
+]
+
 TEMPLATE_FILENAME = "DoBC_dashboard_template.sql"
 OUTPUT_FILENAME = "DoBC_dashboard.sql"
+
 SCRIPT_DIRECTORY = os.path.dirname(os.path.abspath(__file__))
 
 
@@ -128,12 +135,8 @@ class IndicatorRepository(object):
     def __init__(self):
         self.root_directory = os.path.dirname(SCRIPT_DIRECTORY)
 
-        config_filepath = os.path.join(SCRIPT_DIRECTORY, CONFIG_FILENAME)
-        with open(config_filepath, "r") as filehandle:
-            self.config_data = json.load(filehandle)
-
     def get_dashboard_names(self):
-        return self.config_data["dashboards"]
+        return DASHBOARD_NAMES
 
     def get_indicator_paths(self, dashboard):
         indicator_paths = []

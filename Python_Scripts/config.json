@@ -1,9 +1,0 @@
-{
-    "dashboards": [
-        "Panel Mgmt 1 - Active Pts, Assigned Provider, Pt Contact Info, Polypharm, Advance Care Planning, Frailty",
-        "Panel Mgmt 2 - BP, CHF, DM, COPD, CKD, Ischemic Heart dz, Liver dz, Cerebrovasc dz",
-        "Panel Mgmt 3 - OA, Chronic Pain, Anxiety, Depression, Drug and Alcohol Dependence, Dementia",
-        "Panel Mgmt Reports -Pop Histogram, Aggregate Spreadsheets for Pt Contact and Primary Provider",
-        "Panel Tools"
-    ]
-}
