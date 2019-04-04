@@ -7,6 +7,8 @@ When SQL_Scripts/DoBC_dashboard.sql is updated, the DoBC indicator templates at 
 From the folder where you have placed the DoBC_dashboard.sql script on the server
 run the mysql command-line in the Oscar database:
 
+<pre>
 mysql> delete from dashboard where description='DoBC Panel';
 mysql> delete from indicatorTemplate where framework="DoBC CPQI PSP Panel";
 mysql> source source DoBC_dashboard.sql
+</pre>
