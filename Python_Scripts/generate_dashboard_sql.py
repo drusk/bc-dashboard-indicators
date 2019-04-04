@@ -132,6 +132,9 @@ class SQLGenerator(object):
 
 
 class IndicatorRepository(object):
+    """
+    Used to access info about indicators in this repository.
+    """
     def __init__(self):
         self.root_directory = os.path.dirname(SCRIPT_DIRECTORY)
 
