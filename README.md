@@ -10,5 +10,5 @@ run the mysql command-line in the Oscar database:
 <pre>
 mysql> delete from dashboard where description='DoBC Panel';
 mysql> delete from indicatorTemplate where framework="DoBC CPQI PSP Panel";
-mysql> source source DoBC_dashboard.sql
+mysql> source DoBC_dashboard.sql
 </pre>
